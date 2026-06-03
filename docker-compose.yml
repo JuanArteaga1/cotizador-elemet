@@ -1,0 +1,75 @@
+# ============================================
+# Docker Compose - ELEMENT Cotizador + Stack
+# ============================================
+
+version: "3.8"
+
+services:
+  # ─── FRONTEND: ELEMENT Cotizador ─────────
+  element-cotizador:
+    build:
+      context: ./element-cotizador
+      dockerfile: Dockerfile
+    container_name: element-cotizador
+    ports:
+      - "5173:80"
+    environment:
+      # URL del backend SaaS (ajusta según tu infraestructura)
+      - API_URL=http://saas-backend:3001/api/v1
+      # Slug de la tienda en el SaaS
+      - SHOP_SLUG=elemet-haus
+    networks:
+      - element-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ─── EJEMPLO: Otra app en el mismo stack ─────
+  # Descomenta y ajusta según tus necesidades:
+  #
+  # saas-backend:
+  #   image: tu-saas-backend:latest
+  #   container_name: saas-backend
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     - DATABASE_URL=postgresql://user:pass@db:5432/saas
+  #     - JWT_SECRET=your-secret-key
+  #   networks:
+  #     - element-network
+  #   depends_on:
+  #     - db
+  #   restart: unless-stopped
+  #
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: saas-db
+  #   environment:
+  #     - POSTGRES_USER=saas_user
+  #     - POSTGRES_PASSWORD=saas_password
+  #     - POSTGRES_DB=saas_db
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - element-network
+  #   restart: unless-stopped
+  #
+  # admin-panel:
+  #   image: tu-admin-panel:latest
+  #   container_name: admin-panel
+  #   ports:
+  #     - "5174:80"
+  #   networks:
+  #     - element-network
+  #   restart: unless-stopped
+
+networks:
+  element-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:

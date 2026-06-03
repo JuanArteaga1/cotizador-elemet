@@ -1,0 +1,2769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ELEMENT - Cotizador</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Sistema de cotización y generación de cuentas de cobro profesional">
+  <meta name="theme-color" content="#b69462">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ELEMENT">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Apple Touch Icon -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' fill='%23d4af37' rx='20'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='110' font-weight='bold' fill='%23000' text-anchor='middle' dy='.35em'%3EE%3C/text%3E%3C/svg%3E">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect width='32' height='32' fill='%23d4af37'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='20' font-weight='bold' fill='%23000' text-anchor='middle' dy='.35em'%3EE%3C/text%3E%3C/svg%3E">
+  
+  <!-- html2canvas para capturar como imagen -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: #1a1a1a;
+      --text: #ffffff;
+      --muted: #999999;
+      --line: #2a2a2a;
+      --accent: #b69462;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 430px; margin: auto; min-height: 100vh; padding: 18px 18px 120px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+    .input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+    }
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 16px;
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:active { opacity: 0.8; transform: scale(0.98); }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--line); }
+    .btn-small { padding: 10px 16px; font-size: 14px; width: auto; display: inline-block; }
+    .btn-danger { background: #ff3b30; color: white; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .tab {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 400px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      text-align: center;
+      z-index: 100;
+    }
+    .tab div { padding: 8px; border-radius: 12px; cursor: pointer; }
+    .tab div.active { color: var(--accent); }
+    .small { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .toggle-option {
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      cursor: pointer;
+      text-align: center;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .toggle-option.active {
+      border-color: var(--accent);
+      background: rgba(212, 175, 55, 0.15);
+      color: var(--accent);
+    }
+    .diagram-input {
+      width: 60px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: var(--bg);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .service-item {
+      padding: 14px;
+      border-radius: 14px;
+      border: 2px solid var(--line);
+      background: var(--card);
+      cursor: pointer;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .service-item.selected {
+      border-color: var(--accent);
+      background: rgba(212, 175, 55, 0.15);
+    }
+    .service-item.selected::after {
+      content: '✓';
+      color: var(--accent);
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .logo {
+      width: 120px;
+      height: 120px;
+      background: var(--accent);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      margin: 0 auto 16px;
+      box-shadow: 0 8px 32px rgba(182, 148, 98, 0.3);
+    }
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .step-indicator {
+      text-align: center;
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--line);
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    .checkbox {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    .checkbox.checked {
+      border-color: var(--accent);
+      background: rgba(212, 175, 55, 0.15);
+    }
+    .checkbox.checked::after {
+      content: '✓';
+      color: var(--accent);
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .mt-2 { margin-top: 16px; }
+    .mb-1 { margin-bottom: 8px; }
+    .mb-2 { margin-bottom: 16px; }
+    .additional-service-item {
+      padding: 14px;
+      border-radius: 14px;
+      border: 2px solid var(--accent);
+      background: rgba(212, 175, 55, 0.05);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .history-item {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .history-item:active { opacity: 0.8; }
+    .inline-form {
+      padding: 20px;
+      border-radius: 20px;
+      border: 2px solid var(--accent);
+      background: rgba(212, 175, 55, 0.05);
+      margin-bottom: 16px;
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .notification-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 400px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .notification {
+      padding: 16px 20px;
+      border-radius: 16px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 500;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      animation: notificationSlide 0.3s ease;
+      pointer-events: auto;
+    }
+    .notification.success {
+      background: rgba(52, 199, 89, 0.15);
+      border-color: #34c759;
+      color: #34c759;
+    }
+    .notification.error {
+      background: rgba(255, 59, 48, 0.15);
+      border-color: #ff3b30;
+      color: #ff3b30;
+    }
+    .notification.warning {
+      background: rgba(255, 149, 0, 0.15);
+      border-color: #ff9500;
+      color: #ff9500;
+    }
+    @keyframes notificationSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      animation: fadeIn 0.2s ease;
+      padding: 20px;
+    }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: modalSlide 0.3s ease;
+    }
+    .modal h3 {
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .modal p {
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .modal-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes modalSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="notification-container" class="notification-container"></div>
+  <div id="app"></div>
+  <script>
+    let config = JSON.parse(localStorage.getItem('config') || '{}');
+    
+    // Demo mode - preload with example data
+    const isDemoMode = !localStorage.getItem('config');
+    
+    if (!config.services || isDemoMode) {
+      config = {
+        services: {
+          arch: { name: 'Diseño Arquitectónico', price: 7000, unit: '/m²' },
+          struct: { name: 'Diseño Estructural', price: 4000, unit: '/m²' },
+          hydro: { name: 'Instalaciones Hidrosanitarias', price: 2500, unit: '/m²' },
+          elec: { name: 'Diseño Eléctrico', price: 2500, unit: '/m²' },
+          render: { name: 'Renders 3D', price: 1500, unit: '/m²' },
+          tour: { name: 'Recorrido 3D', price: 2000, unit: '/m²' },
+          budget: { name: 'Presupuesto', price: 1000, unit: '/m²' },
+          license: { name: 'Licencias', price: 1500, unit: '/m²' }
+        },
+        subPackages: {
+          installations: { name: 'Instalaciones (Eléctrico + Hidrosanitario)', price: 4500, unit: '/m²' }
+        },
+        completePackage: { name: 'Paquete Completo Premium', price: 14000, unit: '/m²' },
+        paymentPlan: {
+          payments: [
+            { name: 'Firma', percentage: 50 },
+            { name: 'Revisión 1', percentage: 20 },
+            { name: 'Revisión 2', percentage: 20 },
+            { name: 'Entrega', percentage: 10 }
+          ]
+        },
+        invoice: {
+          company: {
+            enabled: true,
+            name: 'Constructora La SAYE',
+            nit: '900123456-7',
+            address: 'Calle 45 #12-34, Pasto, Nariño',
+            phone: '+57 312 456 7890',
+            email: 'contacto@lasaye.com',
+            website: 'www.lasaye.com',
+            logo: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Q0YWYzNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+TDwvdGV4dD48L3N2Zz4='
+          },
+          representative: {
+            enabled: true,
+            name: 'Miguel Ángel Sarria',
+            position: 'Gerente General',
+            document: 'CC 1234567890',
+            signature: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0yMCA0MCBRIDYwIDIwLCA4MCA0MCBUIDE4MCA0MCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
+          },
+          banking: {
+            enabled: true,
+            bank: 'Banco de Bogotá',
+            accountType: 'Ahorros',
+            accountNumber: '1234567890',
+            accountHolder: 'Constructora La SAYE'
+          },
+          document: {
+            consecutiveNumber: 1,
+            terms: 'Pago a realizarse según plan de pagos acordado. Los valores están sujetos a las condiciones establecidas en el contrato.',
+            footerNote: 'Gracias por su confianza'
+          }
+        }
+      };
+      localStorage.setItem('config', JSON.stringify(config));
+    }
+    
+    // Ensure invoice config exists even in old configs
+    if (!config.invoice) {
+      config.invoice = {
+        company: {
+          enabled: false,
+          name: '',
+          nit: '',
+          address: '',
+          phone: '',
+          email: '',
+          website: '',
+          logo: ''
+        },
+        representative: {
+          enabled: false,
+          name: '',
+          position: '',
+          document: '',
+          signature: ''
+        },
+        banking: {
+          enabled: false,
+          bank: '',
+          accountType: 'Ahorros',
+          accountNumber: '',
+          accountHolder: ''
+        },
+        document: {
+          consecutiveNumber: 1,
+          terms: 'Pago a realizarse según plan de pagos acordado.',
+          footerNote: ''
+        }
+      };
+      saveConfig();
+    }
+
+    let currentPage = 'login';
+    let quoteStep = 1;
+    let settingsPage = 'menu';
+    let savedQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+    
+    // Add demo quotes if empty
+    if (savedQuotes.length === 0 && isDemoMode) {
+      savedQuotes = [
+        {
+          id: Date.now(),
+          date: new Date().toLocaleDateString('es-CO'),
+          client: 'Andres Torres',
+          project: 'Remodelación Casa',
+          area: 124.56,
+          price: 249100,
+          status: 'draft',
+          data: JSON.stringify({
+            client: 'Andres Torres',
+            project: 'Remodelación Casa',
+            areaMode: 'dimensions',
+            lotShape: 'rectangular',
+            frontal: '10',
+            posterior: '10',
+            latIzq: '12.456',
+            latDer: '12.456',
+            directArea: '100',
+            occ: 80,
+            floors: 1,
+            overhangSize: 1.00,
+            facades: { frontal: false, posterior: false, lateralLeft: false, lateralRight: false },
+            selectedServices: ['arch'],
+            selectedSubPackages: [],
+            hasCompletePackage: false,
+            discount: 110,
+            additionalServices: []
+          })
+        },
+        {
+          id: Date.now() - 100000,
+          date: new Date(Date.now() - 86400000).toLocaleDateString('es-CO'),
+          client: 'María García',
+          project: 'Casa Nueva - 2 Pisos',
+          area: 200,
+          price: 2800000,
+          status: 'draft',
+          data: JSON.stringify({
+            client: 'María García',
+            project: 'Casa Nueva - 2 Pisos',
+            areaMode: 'dimensions',
+            lotShape: 'rectangular',
+            frontal: '10',
+            posterior: '10',
+            latIzq: '10',
+            latDer: '10',
+            directArea: '100',
+            occ: 80,
+            floors: 2,
+            overhangSize: 1.00,
+            facades: { frontal: true, posterior: true, lateralLeft: false, lateralRight: false },
+            selectedServices: ['arch', 'struct'],
+            selectedSubPackages: [],
+            hasCompletePackage: false,
+            discount: 0,
+            additionalServices: [
+              { id: '1', name: 'Estudio de Suelos', price: 3500000, unit: '/obra' }
+            ]
+          })
+        }
+      ];
+      localStorage.setItem('quotes', JSON.stringify(savedQuotes));
+    }
+    let selectedQuoteId = null;
+    let showQuoteMenu = false;
+    
+    let showNewServiceForm = false;
+    let showNewPaymentForm = false;
+    let showAdditionalServiceForm = false;
+    
+    let confirmationModal = {
+      show: false,
+      message: '',
+      onConfirm: null,
+      deleteType: null,
+      deleteId: null
+    };
+
+    let formData = {
+      client: '',
+      project: '',
+      areaMode: 'dimensions',
+      lotShape: 'rectangular',
+      frontal: '10',
+      posterior: '10',
+      latIzq: '10',
+      latDer: '10',
+      directArea: '100',
+      occ: 80,
+      floors: 2,
+      overhangSize: 1.00,
+      facades: { frontal: false, posterior: false, lateralLeft: false, lateralRight: false },
+      selectedServices: [],
+      selectedSubPackages: [],
+      hasCompletePackage: false,
+      discount: 0,
+      additionalServices: []
+    };
+
+    let newServiceData = { name: '', price: '', unit: '/m²' };
+    let newPaymentData = { name: '', percentage: '' };
+    let newAdditionalServiceData = { name: '', price: '' };
+
+    function showNotification(message, type = 'success') {
+      const container = document.getElementById('notification-container');
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      
+      container.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+          container.removeChild(notification);
+        }, 300);
+      }, 3000);
+    }
+
+    function showConfirmation(message, onConfirm) {
+      confirmationModal = {
+        show: true,
+        message: message,
+        onConfirm: onConfirm
+      };
+      render();
+    }
+
+    function hideConfirmation() {
+      confirmationModal = {
+        show: false,
+        message: '',
+        onConfirm: null,
+        deleteType: null,
+        deleteId: null
+      };
+      render();
+    }
+
+    function confirmAction() {
+      if (confirmationModal.deleteType === 'quote' && confirmationModal.deleteId) {
+        savedQuotes = savedQuotes.filter(q => q.id !== confirmationModal.deleteId);
+        localStorage.setItem('quotes', JSON.stringify(savedQuotes));
+        showNotification('Cotización eliminada', 'success');
+      } else if (confirmationModal.onConfirm) {
+        confirmationModal.onConfirm();
+      }
+      hideConfirmation();
+    }
+
+    function saveConfig() {
+      localStorage.setItem('config', JSON.stringify(config));
+    }
+
+    function navigate(page) {
+      currentPage = page;
+      quoteStep = 1;
+      settingsPage = 'menu';
+      showNewServiceForm = false;
+      showNewPaymentForm = false;
+      showAdditionalServiceForm = false;
+      
+      // Agregar al historial del navegador para gestos de atrás
+      if (page !== 'login') {
+        history.pushState({ page: page }, '', `#${page}`);
+      }
+      
+      render();
+    }
+    
+    // Manejar botón/gesto atrás del navegador
+    window.addEventListener('popstate', (event) => {
+      if (event.state && event.state.page) {
+        currentPage = event.state.page;
+        quoteStep = 1;
+        settingsPage = 'menu';
+        render();
+      } else {
+        // Si no hay estado, ir a dashboard
+        if (currentPage !== 'login') {
+          currentPage = 'dashboard';
+          render();
+        }
+      }
+    });
+
+    function nextStep() {
+      if (quoteStep === 1 && (!formData.client || !formData.project)) {
+        showNotification('Ingresa nombre de cliente y proyecto', 'warning');
+        return;
+      }
+      quoteStep++;
+      render();
+    }
+
+    function prevStep() {
+      quoteStep--;
+      render();
+    }
+
+    function toggleService(id) {
+      const index = formData.selectedServices.indexOf(id);
+      if (index > -1) {
+        formData.selectedServices.splice(index, 1);
+      } else {
+        formData.selectedServices.push(id);
+      }
+      render();
+    }
+
+    function toggleSubPackage(id) {
+      const index = formData.selectedSubPackages.indexOf(id);
+      if (index > -1) {
+        formData.selectedSubPackages.splice(index, 1);
+      } else {
+        formData.selectedSubPackages.push(id);
+        if (id === 'installations') {
+          formData.selectedServices = formData.selectedServices.filter(s => s !== 'elec' && s !== 'hydro');
+        }
+      }
+      render();
+    }
+
+    function toggleCompletePackage() {
+      formData.hasCompletePackage = !formData.hasCompletePackage;
+      if (formData.hasCompletePackage) {
+        formData.selectedServices = [];
+        formData.selectedSubPackages = [];
+      }
+      render();
+    }
+
+    function toggleFacade(side) {
+      formData.facades[side] = !formData.facades[side];
+      render();
+    }
+
+    function setAreaMode(mode) {
+      formData.areaMode = mode;
+      render();
+    }
+
+    function setLotShape(shape) {
+      formData.lotShape = shape;
+      render();
+    }
+
+    function toggleNewServiceForm() {
+      showNewServiceForm = !showNewServiceForm;
+      if (showNewServiceForm) {
+        newServiceData = { name: '', price: '', unit: '/m²' };
+      }
+      render();
+    }
+
+    function saveNewService() {
+      if (!newServiceData.name || !newServiceData.name.trim()) {
+        showNotification('Ingresa un nombre para el servicio', 'error');
+        return;
+      }
+      
+      const price = parseInt(newServiceData.price);
+      if (!price || isNaN(price) || price <= 0) {
+        showNotification('Ingresa un precio válido', 'error');
+        return;
+      }
+      
+      const id = 'custom_' + Date.now();
+      config.services[id] = {
+        name: newServiceData.name.trim(),
+        price: price,
+        unit: newServiceData.unit
+      };
+      
+      saveConfig();
+      showNewServiceForm = false;
+      newServiceData = { name: '', price: '', unit: '/m²' };
+      showNotification('Servicio agregado correctamente', 'success');
+      render();
+    }
+
+    function deleteService(id) {
+      const serviceName = config.services[id].name;
+      showConfirmation(
+        `Estás a punto de eliminar "${serviceName}". Esta acción no se puede deshacer.`,
+        () => {
+          delete config.services[id];
+          saveConfig();
+          showNotification('Servicio eliminado', 'success');
+          render();
+        }
+      );
+    }
+
+    function toggleNewPaymentForm() {
+      showNewPaymentForm = !showNewPaymentForm;
+      if (showNewPaymentForm) {
+        newPaymentData = { name: '', percentage: '' };
+      }
+      render();
+    }
+
+    function saveNewPayment() {
+      if (!newPaymentData.name || !newPaymentData.name.trim()) {
+        showNotification('Ingresa un nombre para el pago', 'error');
+        return;
+      }
+      
+      const percentage = parseInt(newPaymentData.percentage);
+      if (!percentage || isNaN(percentage) || percentage <= 0 || percentage > 100) {
+        showNotification('Ingresa un porcentaje válido (1-100)', 'error');
+        return;
+      }
+      
+      if (config.paymentPlan.payments.length >= 10) {
+        showNotification('Máximo 10 pagos permitidos', 'warning');
+        return;
+      }
+      
+      config.paymentPlan.payments.push({
+        name: newPaymentData.name.trim(),
+        percentage: percentage
+      });
+      
+      saveConfig();
+      showNewPaymentForm = false;
+      newPaymentData = { name: '', percentage: '' };
+      showNotification('Pago agregado correctamente', 'success');
+      render();
+    }
+
+    function deletePayment(index) {
+      const paymentName = config.paymentPlan.payments[index].name;
+      showConfirmation(
+        `Estás a punto de eliminar el pago "${paymentName}". Esta acción no se puede deshacer.`,
+        () => {
+          config.paymentPlan.payments.splice(index, 1);
+          saveConfig();
+          showNotification('Pago eliminado', 'success');
+          render();
+        }
+      );
+    }
+
+    function updatePaymentName(index, value) {
+      config.paymentPlan.payments[index].name = value;
+      saveConfig();
+    }
+
+    function updatePaymentPercentage(index, value) {
+      config.paymentPlan.payments[index].percentage = parseInt(value) || 0;
+      saveConfig();
+      updatePaymentTotal();
+    }
+
+    function updatePaymentTotal() {
+      const totalEl = document.getElementById('payment-total');
+      if (totalEl && config.paymentPlan && config.paymentPlan.payments) {
+        const total = config.paymentPlan.payments.reduce((sum, p) => sum + (parseInt(p.percentage) || 0), 0);
+        totalEl.textContent = total + '%';
+        totalEl.style.color = total === 100 ? 'var(--accent)' : '#ff3b30';
+      }
+    }
+
+    function toggleAdditionalServiceForm() {
+      showAdditionalServiceForm = !showAdditionalServiceForm;
+      if (showAdditionalServiceForm) {
+        newAdditionalServiceData = { name: '', price: '' };
+      }
+      render();
+    }
+
+    function saveAdditionalService() {
+      if (!newAdditionalServiceData.name || !newAdditionalServiceData.name.trim()) {
+        showNotification('Ingresa un nombre para el servicio', 'error');
+        return;
+      }
+      
+      const price = parseInt(newAdditionalServiceData.price);
+      if (!price || isNaN(price) || price <= 0) {
+        showNotification('Ingresa un precio válido', 'error');
+        return;
+      }
+      
+      formData.additionalServices.push({
+        id: Date.now().toString(),
+        name: newAdditionalServiceData.name.trim(),
+        price: price,
+        unit: '/unidad'
+      });
+      
+      showAdditionalServiceForm = false;
+      newAdditionalServiceData = { name: '', price: '' };
+      showNotification('Servicio adicional agregado', 'success');
+      render();
+    }
+
+    function removeAdditionalService(index) {
+      const serviceName = formData.additionalServices[index].name;
+      showConfirmation(
+        `Estás a punto de eliminar "${serviceName}". Esta acción no se puede deshacer.`,
+        () => {
+          formData.additionalServices.splice(index, 1);
+          showNotification('Servicio adicional eliminado', 'success');
+          render();
+        }
+      );
+    }
+
+    function updateSide(side, value) {
+      formData[side] = value;
+      updateCalculations();
+    }
+
+    function saveQuote() {
+      const quote = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString('es-CO'),
+        client: formData.client,
+        project: formData.project,
+        area: calculateArea().total,
+        price: calculatePrice(),
+        status: 'draft', // draft, sent, paid, completed
+        data: JSON.stringify(formData)
+      };
+      
+      savedQuotes.unshift(quote);
+      localStorage.setItem('quotes', JSON.stringify(savedQuotes));
+      
+      showNotification('¡Cotización guardada correctamente!', 'success');
+      setTimeout(() => {
+        navigate('history');
+      }, 500);
+    }
+
+    function loadQuote(id) {
+      const quote = savedQuotes.find(q => q.id === id);
+      if (quote) {
+        formData = JSON.parse(quote.data);
+        navigate('quote');
+      }
+    }
+
+    function showQuoteOptions(id) {
+      selectedQuoteId = id;
+      showQuoteMenu = true;
+      render();
+    }
+
+    function hideQuoteMenu() {
+      selectedQuoteId = null;
+      showQuoteMenu = false;
+      render();
+    }
+
+    function viewQuoteSummary(id) {
+      const quote = savedQuotes.find(q => q.id === id);
+      if (quote) {
+        formData = JSON.parse(quote.data);
+        currentPage = 'quote-summary';
+        selectedQuoteId = id;
+        showQuoteMenu = false;
+        render();
+      }
+    }
+
+    function editQuote(id) {
+      const quote = savedQuotes.find(q => q.id === id);
+      if (!quote) return;
+      
+      if (quote.status === 'paid' || quote.status === 'completed') {
+        showNotification('No puedes editar una cotización finalizada', 'warning');
+        return;
+      }
+      
+      formData = JSON.parse(quote.data);
+      currentPage = 'quote';
+      quoteStep = 5; // Go to summary step
+      showQuoteMenu = false;
+      render();
+    }
+
+    function markQuoteStatus(id, status) {
+      const quote = savedQuotes.find(q => q.id === id);
+      if (quote) {
+        quote.status = status;
+        localStorage.setItem('quotes', JSON.stringify(savedQuotes));
+        showNotification('Cotización marcada como finalizada', 'success');
+        hideQuoteMenu();
+      }
+    }
+
+    function generateInvoice(id) {
+      const quote = savedQuotes.find(q => q.id === id);
+      if (!quote) return;
+      
+      formData = JSON.parse(quote.data);
+      selectedQuoteId = id;
+      currentPage = 'invoice-view';
+      showQuoteMenu = false;
+      
+      // Increment consecutive number
+      config.invoice.document.consecutiveNumber++;
+      saveConfig();
+      
+      render();
+    }
+    
+    function shareInvoice() {
+      const invoiceNumber = (config.invoice.document.consecutiveNumber - 1).toString().padStart(4, '0');
+      const clientName = formData.client;
+      const price = roundTo50(calculatePrice());
+      
+      showNotification('📸 Capturando cuenta de cobro...', 'success');
+      
+      const invoiceElement = document.querySelector('.invoice-doc');
+      
+      if (!invoiceElement) {
+        showNotification('Error al capturar documento', 'error');
+        return;
+      }
+      
+      // Verificar si html2canvas está disponible
+      if (typeof html2canvas === 'undefined') {
+        // Fallback a texto si html2canvas no cargó
+        shareAsText();
+        return;
+      }
+      
+      // Capturar como imagen
+      html2canvas(invoiceElement, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        windowWidth: invoiceElement.scrollWidth,
+        windowHeight: invoiceElement.scrollHeight
+      }).then(canvas => {
+        // Convertir a blob
+        canvas.toBlob(blob => {
+          if (!blob) {
+            showNotification('Error al generar imagen', 'error');
+            return;
+          }
+          
+          const fileName = `Cuenta_Cobro_${invoiceNumber}_${clientName.replace(/\s+/g, '_')}.png`;
+          const file = new File([blob], fileName, { type: 'image/png' });
+          
+          // Intentar compartir con Web Share API
+          if (navigator.share && navigator.canShare) {
+            // Verificar si puede compartir archivos
+            if (navigator.canShare({ files: [file] })) {
+              navigator.share({
+                title: `Cuenta de Cobro No. ${invoiceNumber}`,
+                text: `Cuenta de cobro para ${clientName} - Total: $${price.toLocaleString('es-CO')} COP`,
+                files: [file]
+              })
+              .then(() => showNotification('✅ Compartido exitosamente', 'success'))
+              .catch((error) => {
+                if (error.name !== 'AbortError') {
+                  // Si falla, descargar la imagen
+                  downloadImage(blob, fileName);
+                }
+              });
+            } else {
+              // Si no soporta compartir archivos, descargar
+              downloadImage(blob, fileName);
+            }
+          } else {
+            // Fallback: descargar imagen
+            downloadImage(blob, fileName);
+          }
+        }, 'image/png', 0.95);
+      }).catch(error => {
+        console.error('Error al capturar:', error);
+        showNotification('Error al generar imagen', 'error');
+        // Fallback a texto
+        shareAsText();
+      });
+    }
+    
+    function downloadImage(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showNotification('📥 Imagen guardada en Descargas. Compártela desde Galería', 'success');
+    }
+    
+    function shareAsText() {
+      const invoiceNumber = (config.invoice.document.consecutiveNumber - 1).toString().padStart(4, '0');
+      const clientName = formData.client;
+      const price = roundTo50(calculatePrice());
+      const companyName = config.invoice.company.enabled ? config.invoice.company.name : 'ELEMENT';
+      
+      const shareText = `🧾 *CUENTA DE COBRO No. ${invoiceNumber}*
+
+📋 *Empresa:* ${companyName}
+👤 *Cliente:* ${clientName}
+🏗️ *Proyecto:* ${formData.project}
+
+💰 *VALOR TOTAL:* $${price.toLocaleString('es-CO')} COP
+
+---
+Generado con ELEMENT Cotizador`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: `Cuenta de Cobro No. ${invoiceNumber}`,
+          text: shareText
+        })
+        .then(() => showNotification('✅ Compartido exitosamente', 'success'))
+        .catch((error) => {
+          if (error.name !== 'AbortError') {
+            shareViaWhatsApp(shareText);
+          }
+        });
+      } else {
+        shareViaWhatsApp(shareText);
+      }
+    }
+    
+    function shareViaWhatsApp(text) {
+      const encodedText = encodeURIComponent(text);
+      const whatsappUrl = `https://wa.me/?text=${encodedText}`;
+      
+      // Abrir WhatsApp
+      window.open(whatsappUrl, '_blank');
+      showNotification('📱 Abriendo WhatsApp...', 'success');
+    }
+
+    function deleteQuote(id) {
+      const quote = savedQuotes.find(q => q.id === id);
+      const quoteName = quote ? `${quote.client} - ${quote.project}` : 'esta cotización';
+      
+      confirmationModal = {
+        show: true,
+        message: `Estás a punto de eliminar "${quoteName}". Esta acción no se puede deshacer.`,
+        deleteType: 'quote',
+        deleteId: id,
+        onConfirm: null
+      };
+      render();
+    }
+
+    function clearAllHistory() {
+      const count = savedQuotes.length;
+      showConfirmation(
+        `Estás a punto de eliminar TODAS las cotizaciones guardadas (${count} en total). Esta acción no se puede deshacer y limpiará todo el historial.`,
+        () => {
+          savedQuotes = [];
+          localStorage.setItem('quotes', JSON.stringify(savedQuotes));
+          showNotification('Historial limpiado completamente', 'success');
+          render();
+        }
+      );
+    }
+
+    function uploadLogo(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      if (!file.type.startsWith('image/')) {
+        showNotification('Por favor selecciona una imagen válida', 'error');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        config.invoice.company.logo = e.target.result;
+        saveConfig();
+        showNotification('Logo cargado correctamente', 'success');
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function uploadSignature(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      if (!file.type.startsWith('image/')) {
+        showNotification('Por favor selecciona una imagen válida', 'error');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        config.invoice.representative.signature = e.target.result;
+        saveConfig();
+        showNotification('Firma cargada correctamente', 'success');
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeLogo() {
+      config.invoice.company.logo = '';
+      saveConfig();
+      showNotification('Logo eliminado', 'success');
+      render();
+    }
+
+    function removeSignature() {
+      config.invoice.representative.signature = '';
+      saveConfig();
+      showNotification('Firma eliminada', 'success');
+      render();
+    }
+
+    function toggleInvoiceSection(section) {
+      config.invoice[section].enabled = !config.invoice[section].enabled;
+      saveConfig();
+      render();
+    }
+
+    function updateInvoiceField(section, field, value) {
+      config.invoice[section][field] = value;
+      saveConfig();
+    }
+
+    function calculateArea() {
+      let lot, first, overhangArea = 0, upperFloorArea = 0, upper = 0;
+      let frontal = 0, posterior = 0, latIzq = 0, latDer = 0;
+      
+      if (formData.areaMode === 'direct') {
+        first = parseFloat(formData.directArea) || 0;
+        lot = first / (formData.occ / 100);
+        frontal = parseFloat(formData.frontal) || 0;
+        posterior = parseFloat(formData.posterior) || 0;
+        latIzq = parseFloat(formData.latIzq) || 0;
+        latDer = parseFloat(formData.latDer) || 0;
+      } else {
+        if (formData.lotShape === 'irregular') {
+          frontal = parseFloat(formData.frontal) || 0;
+          posterior = parseFloat(formData.posterior) || 0;
+          latIzq = parseFloat(formData.latIzq) || 0;
+          latDer = parseFloat(formData.latDer) || 0;
+          lot = ((frontal + posterior) / 2) * ((latIzq + latDer) / 2);
+        } else {
+          frontal = parseFloat(formData.frontal) || 0;
+          posterior = frontal;
+          latIzq = parseFloat(formData.latIzq) || 0;
+          latDer = latIzq;
+          lot = frontal * latIzq;
+        }
+        first = lot * (formData.occ / 100);
+      }
+      
+      if (formData.floors > 1) {
+        const avgFrontal = (frontal + posterior) / 2;
+        const avgLateral = (latIzq + latDer) / 2;
+        
+        if (formData.facades.frontal) overhangArea += avgFrontal * formData.overhangSize;
+        if (formData.facades.posterior) overhangArea += avgFrontal * formData.overhangSize;
+        if (formData.facades.lateralLeft) overhangArea += avgLateral * formData.overhangSize;
+        if (formData.facades.lateralRight) overhangArea += avgLateral * formData.overhangSize;
+        
+        upperFloorArea = first + overhangArea;
+        upper = upperFloorArea * (formData.floors - 1);
+      }
+      
+      return { lot, first, overhangArea, upperFloorArea, upper, total: first + upper, frontal, posterior, latIzq, latDer };
+    }
+
+    function calculatePrice() {
+      const area = calculateArea();
+      let total = 0;
+      
+      if (formData.hasCompletePackage) {
+        const pkg = config.completePackage;
+        total += pkg.unit === '/m²' ? area.total * pkg.price : pkg.price;
+      } else {
+        formData.selectedSubPackages.forEach(id => {
+          const pkg = config.subPackages[id];
+          if (pkg) {
+            total += pkg.unit === '/m²' ? area.total * pkg.price : pkg.price;
+          }
+        });
+        
+        formData.selectedServices.forEach(id => {
+          const service = config.services[id];
+          if (service) {
+            total += service.unit === '/m²' ? area.total * service.price : service.price;
+          }
+        });
+      }
+      
+      formData.additionalServices.forEach(service => {
+        total += service.price || 0;
+      });
+      
+      return Math.round(total - (formData.discount || 0));
+    }
+
+    function roundTo50(value) {
+      return Math.round(value / 50) * 50;
+    }
+
+    function updateCalculations() {
+      const area = calculateArea();
+      const lotEl = document.getElementById('lot-display');
+      const firstEl = document.getElementById('first-display');
+      const occEl = document.getElementById('occ-display');
+      
+      if (lotEl) lotEl.textContent = area.lot.toFixed(2) + ' m²';
+      if (firstEl) firstEl.textContent = area.first.toFixed(2) + ' m²';
+      if (occEl) occEl.textContent = formData.occ + '%';
+    }
+
+    function updateDiscountPrice() {
+      const price = calculatePrice();
+      const finalPriceEl = document.getElementById('final-price-display');
+      if (finalPriceEl) finalPriceEl.textContent = '$' + price.toLocaleString('es-CO');
+      
+      if (config.paymentPlan && config.paymentPlan.payments) {
+        config.paymentPlan.payments.forEach((payment, i) => {
+          const paymentEl = document.getElementById(`payment-${i + 1}`);
+          if (paymentEl) {
+            paymentEl.textContent = '$' + Math.round(price * payment.percentage / 100).toLocaleString('es-CO');
+          }
+        });
+      }
+    }
+
+    function getInteractiveDiagram() {
+      const frontal = parseFloat(formData.frontal) || 10;
+      const posterior = formData.lotShape === 'rectangular' ? frontal : (parseFloat(formData.posterior) || 10);
+      const latIzq = parseFloat(formData.latIzq) || 10;
+      const latDer = formData.lotShape === 'rectangular' ? latIzq : (parseFloat(formData.latDer) || 10);
+      
+      const avgFrontal = (frontal + posterior) / 2;
+      const avgLateral = (latIzq + latDer) / 2;
+      
+      const maxDim = Math.max(avgFrontal, avgLateral);
+      const scale = Math.min(180 / maxDim, 150 / maxDim);
+      
+      const rectWidth = avgFrontal * scale;
+      const rectHeight = avgLateral * scale;
+      
+      const rectX = (400 - rectWidth) / 2;
+      const rectY = (300 - rectHeight) / 2;
+      
+      return `
+        <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 280px;">
+          <rect x="${rectX}" y="${rectY}" width="${rectWidth}" height="${rectHeight}" 
+                fill="rgba(212, 175, 55, 0.1)" stroke="var(--accent)" stroke-width="2"/>
+          
+          <text x="${rectX + rectWidth/2}" y="${rectY - 60}" fill="var(--muted)" 
+                text-anchor="middle" font-size="12" font-weight="600">FRONTAL</text>
+          <foreignObject x="${rectX + rectWidth/2 - 30}" y="${rectY - 45}" width="60" height="30">
+            <input type="number" class="diagram-input" value="${formData.frontal}" step="0.1"
+              oninput="updateSide('frontal', this.value)" xmlns="http://www.w3.org/1999/xhtml" />
+          </foreignObject>
+          <text x="${rectX + rectWidth/2}" y="${rectY - 15}" fill="var(--accent)" 
+                text-anchor="middle" font-size="11">m</text>
+          <line x1="${rectX}" y1="${rectY - 10}" x2="${rectX + rectWidth}" y2="${rectY - 10}" 
+                stroke="var(--accent)" stroke-width="1"/>
+          
+          <text x="${rectX - 70}" y="${rectY + rectHeight/2 - 30}" fill="var(--muted)" 
+                text-anchor="middle" font-size="12" font-weight="600">LAT IZQ</text>
+          <foreignObject x="${rectX - 100}" y="${rectY + rectHeight/2 - 15}" width="60" height="30">
+            <input type="number" class="diagram-input" value="${formData.latIzq}" step="0.1"
+              oninput="updateSide('latIzq', this.value)" xmlns="http://www.w3.org/1999/xhtml" />
+          </foreignObject>
+          <line x1="${rectX - 10}" y1="${rectY}" x2="${rectX - 10}" y2="${rectY + rectHeight}" 
+                stroke="var(--accent)" stroke-width="1"/>
+          
+          ${formData.lotShape === 'irregular' ? `
+            <text x="${rectX + rectWidth/2}" y="${rectY + rectHeight + 25}" fill="var(--muted)" 
+                  text-anchor="middle" font-size="12" font-weight="600">POSTERIOR</text>
+            <foreignObject x="${rectX + rectWidth/2 - 30}" y="${rectY + rectHeight + 30}" width="60" height="30">
+              <input type="number" class="diagram-input" value="${formData.posterior}" step="0.1"
+                oninput="updateSide('posterior', this.value)" xmlns="http://www.w3.org/1999/xhtml" />
+            </foreignObject>
+            <line x1="${rectX}" y1="${rectY + rectHeight + 10}" x2="${rectX + rectWidth}" y2="${rectY + rectHeight + 10}" 
+                  stroke="var(--accent)" stroke-width="1"/>
+            
+            <text x="${rectX + rectWidth + 70}" y="${rectY + rectHeight/2 - 30}" fill="var(--muted)" 
+                  text-anchor="middle" font-size="12" font-weight="600">LAT DER</text>
+            <foreignObject x="${rectX + rectWidth + 40}" y="${rectY + rectHeight/2 - 15}" width="60" height="30">
+              <input type="number" class="diagram-input" value="${formData.latDer}" step="0.1"
+                oninput="updateSide('latDer', this.value)" xmlns="http://www.w3.org/1999/xhtml" />
+            </foreignObject>
+            <line x1="${rectX + rectWidth + 10}" y1="${rectY}" x2="${rectX + rectWidth + 10}" y2="${rectY + rectHeight}" 
+                  stroke="var(--accent)" stroke-width="1"/>
+          ` : `
+            <text x="${rectX + rectWidth/2}" y="${rectY + rectHeight + 35}" fill="var(--muted)" 
+                  text-anchor="middle" font-size="11">(= Frontal)</text>
+            <text x="${rectX + rectWidth + 50}" y="${rectY + rectHeight/2 + 5}" fill="var(--muted)" 
+                  text-anchor="middle" font-size="11">(= Lat Izq)</text>
+          `}
+        </svg>
+      `;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      let html = '';
+      
+      if (currentPage === 'login') {
+        html = renderLogin();
+      } else if (currentPage === 'dashboard') {
+        html = renderDashboard();
+      } else if (currentPage === 'quote') {
+        html = renderQuote();
+      } else if (currentPage === 'quote-summary') {
+        html = renderQuoteSummary();
+      } else if (currentPage === 'invoice-view') {
+        html = renderInvoice();
+      } else if (currentPage === 'settings') {
+        html = renderSettings();
+      } else if (currentPage === 'history') {
+        html = renderHistory();
+      }
+      
+      // Add confirmation modal if active
+      if (confirmationModal.show) {
+        html += `
+          <div class="modal-overlay" onclick="if(event.target === this) hideConfirmation()">
+            <div class="modal">
+              <h3>Confirmar eliminación</h3>
+              <p>${confirmationModal.message}</p>
+              <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="hideConfirmation()">Cancelar</button>
+                <button class="btn btn-danger" onclick="confirmAction()">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Add quote options menu if active
+      if (showQuoteMenu && selectedQuoteId) {
+        const quote = savedQuotes.find(q => q.id === selectedQuoteId);
+        const isCompleted = quote && (quote.status === 'paid' || quote.status === 'completed');
+        
+        html += `
+          <div class="modal-overlay" onclick="if(event.target === this) hideQuoteMenu()">
+            <div class="modal">
+              <h3>${quote ? quote.client : 'Opciones'}</h3>
+              <p class="small mb-2">${quote ? quote.project : ''}</p>
+              
+              <div style="display: grid; gap: 12px;">
+                <button class="btn btn-secondary" onclick="viewQuoteSummary(${selectedQuoteId})">
+                  📄 Ver Resumen
+                </button>
+                
+                ${!isCompleted ? `
+                  <button class="btn btn-secondary" onclick="editQuote(${selectedQuoteId})">
+                    ✏️ Editar
+                  </button>
+                ` : ''}
+                
+                <button class="btn btn-secondary" onclick="generateInvoice(${selectedQuoteId})">
+                  📋 Generar Cuenta de Cobro
+                </button>
+                
+                ${!isCompleted ? `
+                  <button class="btn" style="background: #34c759;" onclick="markQuoteStatus(${selectedQuoteId}, 'completed')">
+                    ✓ Marcar como Finalizada
+                  </button>
+                ` : `
+                  <p class="small" style="text-align: center; color: var(--accent); padding: 12px; background: rgba(212, 175, 55, 0.1); border-radius: 12px;">
+                    Esta cotización está finalizada y no se puede editar
+                  </p>
+                `}
+                
+                <button class="btn btn-secondary" onclick="hideQuoteMenu()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      app.innerHTML = html;
+    }
+
+    function renderLogin() {
+      return `
+        <main class="wrap">
+          <div style="height: 15vh"></div>
+          <div class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M 15,45 L 15,95 L 85,95 L 85,45 L 50,10 Z M 25,50 L 50,22 L 75,50 L 75,85 L 25,85 Z" fill="#fff"/><path d="M 35,38 L 50,28 L 65,38 L 65,48 L 50,38 L 35,48 Z" fill="#fff"/><path d="M 25,55 L 50,40 L 75,55 L 75,65 L 50,50 L 25,65 Z" fill="#fff"/><path d="M 15,72 L 50,52 L 85,72 L 85,82 L 50,62 L 15,82 Z" fill="#fff"/></svg>
+          </div>
+          <div class="card">
+            <h1 style="text-align: center;">ELEMENT</h1>
+            <p class="small" style="text-align: center;">Cotizador Profesional</p>
+            <div style="margin-top: 24px; display: grid; gap: 12px;">
+              <input class="input" placeholder="Usuario" />
+              <input class="input" type="password" placeholder="Contraseña" />
+              <button class="btn" onclick="navigate('dashboard')">INGRESAR</button>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    function renderDashboard() {
+      return `
+        <main class="wrap">
+          <h1>Hola Miguel</h1>
+          <p class="small">Bienvenido a ELEMENT</p>
+          <div class="grid mt-2">
+            <div class="card" onclick="navigate('quote')" style="cursor: pointer;">
+              <h3>📐 Nueva</h3>
+              <p class="small">Cotización</p>
+            </div>
+            <div class="card" onclick="navigate('settings')" style="cursor: pointer;">
+              <h3>⚙️ Ajustes</h3>
+              <p class="small">Configurar</p>
+            </div>
+          </div>
+          <nav class="tab">
+            <div class="active">🏠<div class="small">Inicio</div></div>
+            <div onclick="navigate('quote')">📐<div class="small">Cotizar</div></div>
+            <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+            <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+          </nav>
+        </main>
+      `;
+    }
+
+    function renderInvoice() {
+      const area = calculateArea();
+      const price = calculatePrice();
+      const quote = savedQuotes.find(q => q.id === selectedQuoteId);
+      const inv = config.invoice;
+      const invoiceNumber = (inv.document.consecutiveNumber - 1).toString().padStart(4, '0');
+      const today = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+      
+      return `
+        <style>
+          @media print {
+            .no-print { display: none !important; }
+            body { background: white; margin: 0; padding: 0; }
+            .wrap { max-width: 100%; padding: 10px; margin: 0; }
+            .invoice-doc { 
+              padding: 15px 20px !important;
+              margin: 0 !important;
+            }
+            .invoice-section {
+              margin-bottom: 10px !important;
+            }
+            .invoice-header {
+              margin-bottom: 10px !important;
+              padding-bottom: 8px !important;
+            }
+            .invoice-table {
+              margin: 8px 0 !important;
+            }
+            .invoice-total {
+              margin: 8px 0 !important;
+              padding: 10px !important;
+            }
+            .invoice-signature {
+              margin-top: 15px !important;
+            }
+          }
+          .invoice-doc {
+            background: white;
+            color: #000;
+            padding: 15px 20px;
+            max-width: 750px;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+          }
+          .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
+          }
+          .invoice-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 2px;
+            line-height: 1;
+          }
+          .invoice-number {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.2;
+          }
+          .invoice-section {
+            margin-bottom: 10px;
+            page-break-inside: avoid;
+          }
+          .invoice-section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            line-height: 1;
+          }
+          .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            table-layout: fixed;
+            page-break-inside: avoid;
+          }
+          .invoice-table th {
+            background: #f5f5f5;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            font-size: 11px;
+            line-height: 1.2;
+          }
+          .invoice-table td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            font-size: 11px;
+            word-wrap: break-word;
+            line-height: 1.3;
+          }
+          .invoice-table th:first-child,
+          .invoice-table td:first-child {
+            width: 40%;
+          }
+          .invoice-table th:nth-child(2),
+          .invoice-table td:nth-child(2) {
+            width: 20%;
+          }
+          .invoice-table th:nth-child(3),
+          .invoice-table td:nth-child(3) {
+            width: 20%;
+          }
+          .invoice-table th:nth-child(4),
+          .invoice-table td:nth-child(4) {
+            width: 20%;
+          }
+          .invoice-total {
+            text-align: right;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 8px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            page-break-inside: avoid;
+            line-height: 1.2;
+          }
+          .invoice-signature {
+            margin-top: 15px;
+            text-align: center;
+            page-break-inside: avoid;
+          }
+          .signature-line {
+            border-top: 2px solid #333;
+            width: 220px;
+            margin: 0 auto 8px;
+          }
+        </style>
+        
+        <div class="wrap">
+          <div class="no-print" style="margin-bottom: 20px;">
+            <button class="btn-secondary btn-small" onclick="navigate('history')">
+              ← Volver al Historial
+            </button>
+            <button class="btn btn-small" onclick="shareInvoice()" style="float: right; margin-left: 10px;">
+              📤 Compartir
+            </button>
+            <button class="btn btn-small" onclick="window.print()" style="float: right;">
+              🖨️ Imprimir / PDF
+            </button>
+          </div>
+          
+          <div class="invoice-doc">
+            <!-- HEADER -->
+            <div class="invoice-header">
+              <div>
+                ${inv.company.enabled && inv.company.logo ? `
+                  <img src="${inv.company.logo}" style="max-width: 160px; max-height: 80px; margin-bottom: 8px; display: block;" />
+                ` : ''}
+                ${inv.company.enabled ? `
+                  <div style="font-size: 15px; font-weight: bold; color: #333; line-height: 1.2; margin-bottom: 3px;">${inv.company.name}</div>
+                  ${inv.company.nit ? `<div style="font-size: 10px; color: #666; line-height: 1.3;">NIT: ${inv.company.nit}</div>` : ''}
+                  ${inv.company.address ? `<div style="font-size: 10px; color: #666; line-height: 1.3;">${inv.company.address}</div>` : ''}
+                  ${inv.company.phone ? `<div style="font-size: 10px; color: #666; line-height: 1.3;">Tel: ${inv.company.phone}</div>` : ''}
+                  ${inv.company.email ? `<div style="font-size: 10px; color: #666; line-height: 1.3;">${inv.company.email}</div>` : ''}
+                  ${inv.company.website ? `<div style="font-size: 10px; color: #666; line-height: 1.3;">${inv.company.website}</div>` : ''}
+                ` : ''}
+              </div>
+              <div style="text-align: right;">
+                <div class="invoice-title">CUENTA DE COBRO</div>
+                <div class="invoice-number">No. ${invoiceNumber}</div>
+                <div style="font-size: 10px; color: #666; margin-top: 3px; line-height: 1.2;">${today}</div>
+              </div>
+            </div>
+            
+            <!-- CLIENT INFO -->
+            <div class="invoice-section">
+              <div class="invoice-section-title">Cliente</div>
+              <div><strong>${formData.client}</strong></div>
+              <div style="color: #666;">${formData.project}</div>
+            </div>
+            
+            <!-- SERVICES TABLE -->
+            <table class="invoice-table">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th style="text-align: center;">Cantidad</th>
+                  <th style="text-align: right;">Valor Unit.</th>
+                  <th style="text-align: right;">Valor Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${formData.hasCompletePackage ? `
+                  <tr>
+                    <td>${config.completePackage.name}</td>
+                    <td style="text-align: center;">${area.total.toFixed(2)} m²</td>
+                    <td style="text-align: right;">$${config.completePackage.price.toLocaleString('es-CO')}</td>
+                    <td style="text-align: right;">$${roundTo50(area.total * config.completePackage.price).toLocaleString('es-CO')}</td>
+                  </tr>
+                ` : ''}
+                
+                ${formData.selectedSubPackages.map(id => {
+                  const pkg = config.subPackages[id];
+                  const total = pkg.unit === '/m²' ? area.total * pkg.price : pkg.price;
+                  return `
+                    <tr>
+                      <td>${pkg.name}</td>
+                      <td style="text-align: center;">${pkg.unit === '/m²' ? area.total.toFixed(2) + ' m²' : '1'}</td>
+                      <td style="text-align: right;">$${pkg.price.toLocaleString('es-CO')}</td>
+                      <td style="text-align: right;">$${roundTo50(total).toLocaleString('es-CO')}</td>
+                    </tr>
+                  `;
+                }).join('')}
+                
+                ${formData.selectedServices.map(id => {
+                  const service = config.services[id];
+                  const total = service.unit === '/m²' ? area.total * service.price : service.price;
+                  return `
+                    <tr>
+                      <td>${service.name}</td>
+                      <td style="text-align: center;">${service.unit === '/m²' ? area.total.toFixed(2) + ' m²' : '1'}</td>
+                      <td style="text-align: right;">$${service.price.toLocaleString('es-CO')}</td>
+                      <td style="text-align: right;">$${roundTo50(total).toLocaleString('es-CO')}</td>
+                    </tr>
+                  `;
+                }).join('')}
+                
+                ${formData.additionalServices.map(service => `
+                  <tr>
+                    <td>${service.name}</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">$${service.price.toLocaleString('es-CO')}</td>
+                    <td style="text-align: right;">$${roundTo50(service.price).toLocaleString('es-CO')}</td>
+                  </tr>
+                `).join('')}
+                
+                ${formData.discount > 0 ? `
+                  <tr>
+                    <td colspan="3" style="text-align: right;"><strong>Descuento</strong></td>
+                    <td style="text-align: right; color: #ff3b30;">-$${formData.discount.toLocaleString('es-CO')}</td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+            
+            <!-- TOTAL -->
+            <div class="invoice-total">
+              VALOR TOTAL: $${roundTo50(price).toLocaleString('es-CO')} COP
+            </div>
+            
+            <!-- PAYMENT PLAN -->
+            ${config.paymentPlan.payments.length > 0 ? `
+              <div class="invoice-section">
+                <div class="invoice-section-title">Plan de Pagos</div>
+                <table class="invoice-table">
+                  <thead>
+                    <tr>
+                      <th>Concepto</th>
+                      <th style="text-align: center;">Porcentaje</th>
+                      <th style="text-align: right;">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${config.paymentPlan.payments.map(payment => `
+                      <tr>
+                        <td>${payment.name}</td>
+                        <td style="text-align: center;">${payment.percentage}%</td>
+                        <td style="text-align: right;">$${roundTo50(roundTo50(price) * payment.percentage / 100).toLocaleString('es-CO')}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+            
+            <!-- TERMS -->
+            ${inv.document.terms ? `
+              <div class="invoice-section">
+                <div class="invoice-section-title">Términos y Condiciones</div>
+                <div style="font-size: 10px; color: #666; line-height: 1.3;">${inv.document.terms}</div>
+              </div>
+            ` : ''}
+            
+            <!-- BANKING INFO -->
+            ${inv.banking.enabled ? `
+              <div class="invoice-section">
+                <div class="invoice-section-title">Datos Bancarios</div>
+                <div style="font-size: 10px; line-height: 1.4;">
+                  <div style="margin-bottom: 2px;"><strong>Banco:</strong> ${inv.banking.bank} | <strong>Tipo de cuenta:</strong> ${inv.banking.accountType}</div>
+                  <div><strong>Número de cuenta:</strong> ${inv.banking.accountNumber} | <strong>Titular:</strong> ${inv.banking.accountHolder}</div>
+                </div>
+              </div>
+            ` : ''}
+            
+            <!-- SIGNATURE -->
+            ${inv.representative.enabled ? `
+              <div class="invoice-signature">
+                ${inv.representative.signature ? `
+                  <img src="${inv.representative.signature}" style="max-width: 160px; max-height: 50px; margin-bottom: 6px; display: block; margin-left: auto; margin-right: auto;" />
+                ` : '<div style="height: 40px;"></div>'}
+                <div class="signature-line"></div>
+                <div style="font-size: 12px; font-weight: bold; line-height: 1.2;">${inv.representative.name}</div>
+                ${inv.representative.position ? `<div style="font-size: 10px; color: #666; line-height: 1.2;">${inv.representative.position}</div>` : ''}
+                ${inv.representative.document ? `<div style="font-size: 10px; color: #666; line-height: 1.2;">${inv.representative.document}</div>` : ''}
+              </div>
+            ` : ''}
+            
+            <!-- FOOTER NOTE -->
+            ${inv.document.footerNote ? `
+              <div style="text-align: center; margin-top: 10px; font-size: 10px; color: #999; line-height: 1.2;">
+                ${inv.document.footerNote}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderQuoteSummary() {
+      const area = calculateArea();
+      const price = calculatePrice();
+      const quote = savedQuotes.find(q => q.id === selectedQuoteId);
+      const basePrice = price + (formData.discount || 0);
+      const finalPrice = price;
+
+      return `
+        <main class="wrap">
+          <button class="btn-secondary btn-small mb-2" onclick="navigate('history')">
+            ← Volver al Historial
+          </button>
+          
+          <h1>Resumen de Cotización</h1>
+          <p class="small">Solo lectura</p>
+
+          <div class="card mt-2">
+            <div class="flex-between mb-1">
+              <h3>${formData.client}</h3>
+              ${quote ? `<span class="small" style="color: ${(quote.status === 'completed' || quote.status === 'paid') ? '#34c759' : '#999999'}; font-weight: 600;">${(quote.status === 'completed' || quote.status === 'paid') ? '✓ Finalizada' : 'Borrador'}</span>` : ''}
+            </div>
+            <p class="small">${formData.project}</p>
+            <p class="small" style="margin-top: 4px;">Área: ${area.total.toFixed(2)} m²</p>
+            ${quote ? `<p class="small">Fecha: ${quote.date}</p>` : ''}
+          </div>
+
+          <div class="card">
+            <h3 class="mb-2">Servicios Incluidos</h3>
+            ${formData.hasCompletePackage ? `
+              <div style="padding: 12px; background: rgba(212, 175, 55, 0.1); border-radius: 12px; margin-bottom: 8px;">
+                <div style="font-weight: 600">${config.completePackage.name}</div>
+                <div class="small">$${config.completePackage.price.toLocaleString('es-CO')}${config.completePackage.unit || '/m²'}</div>
+              </div>
+            ` : ''}
+            
+            ${formData.selectedSubPackages.map(id => {
+              const pkg = config.subPackages[id];
+              return `
+                <div style="padding: 12px; background: rgba(212, 175, 55, 0.1); border-radius: 12px; margin-bottom: 8px;">
+                  <div style="font-weight: 600">${pkg.name}</div>
+                  <div class="small">$${pkg.price.toLocaleString('es-CO')}${pkg.unit || '/m²'}</div>
+                </div>
+              `;
+            }).join('')}
+            
+            ${formData.selectedServices.map(id => {
+              const service = config.services[id];
+              return `
+                <div style="padding: 12px; background: var(--bg); border-radius: 12px; margin-bottom: 8px;">
+                  <div style="font-weight: 600">${service.name}</div>
+                  <div class="small">$${service.price.toLocaleString('es-CO')}${service.unit || '/m²'}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          ${formData.additionalServices.length > 0 ? `
+            <div class="card">
+              <h3 class="mb-2">Servicios Adicionales</h3>
+              ${formData.additionalServices.map(service => `
+                <div style="padding: 12px; background: rgba(212, 175, 55, 0.05); border: 2px solid var(--accent); border-radius: 12px; margin-bottom: 8px;">
+                  <div style="font-weight: 600">${service.name}</div>
+                  <div class="small">$${service.price.toLocaleString('es-CO')}${service.unit || '/unidad'}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div class="card">
+            <div class="flex-between mb-2">
+              <span>Valor base</span>
+              <span style="font-weight: 600">$${basePrice.toLocaleString('es-CO')}</span>
+            </div>
+            
+            ${formData.discount > 0 ? `
+              <div class="flex-between mb-2">
+                <span class="small" style="color: var(--muted)">Descuento</span>
+                <span class="small" style="color: var(--muted)">-$${formData.discount.toLocaleString('es-CO')}</span>
+              </div>
+            ` : ''}
+            
+            <div class="flex-between" style="padding-top: 12px; border-top: 1px solid var(--line);">
+              <span style="font-weight: 600; font-size: 16px;">Valor Final</span>
+              <span style="font-size: 24px; font-weight: 700; color: var(--accent)">
+                $${finalPrice.toLocaleString('es-CO')}
+              </span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="mb-2">Plan de Pagos</h3>
+            <div style="display: grid; gap: 10px;">
+              ${config.paymentPlan.payments.map((payment, i) => `
+                <div class="flex-between">
+                  <span>${payment.percentage}% ${payment.name}</span>
+                  <span style="font-weight: 600">$${Math.round(finalPrice * payment.percentage / 100).toLocaleString('es-CO')}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <button class="btn mt-2" onclick="navigate('history')">
+            Volver al Historial
+          </button>
+
+          <nav class="tab">
+            <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+            <div onclick="navigate('quote')">📐<div class="small">Cotizar</div></div>
+            <div class="active">📂<div class="small">Historial</div></div>
+            <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+          </nav>
+        </main>
+      `;
+    }
+
+    function renderHistory() {
+      return `
+        <main class="wrap">
+          <h1>Historial</h1>
+          <p class="small">${savedQuotes.length} cotizaciones guardadas</p>
+          
+          ${savedQuotes.length > 0 ? `
+            <div class="mt-2">
+              ${savedQuotes.map(quote => {
+                const statusColors = {
+                  draft: '#999999',
+                  completed: '#34c759'
+                };
+                const statusLabels = {
+                  draft: 'Borrador',
+                  completed: 'Finalizada'
+                };
+                const status = (quote.status === 'paid' || quote.status === 'completed') ? 'completed' : 'draft';
+                
+                return `
+                <div class="history-item" onclick="showQuoteOptions(${quote.id})">
+                  <div class="flex-between mb-1">
+                    <h3>${quote.client}</h3>
+                    <button class="btn-small btn-danger" onclick="event.stopPropagation(); deleteQuote(${quote.id})">×</button>
+                  </div>
+                  <p class="small">${quote.project}</p>
+                  <div class="flex-between" style="margin-top: 8px;">
+                    <span class="small" style="color: ${statusColors[status]}; font-weight: 600;">● ${statusLabels[status]}</span>
+                    <span class="small">${quote.area.toFixed(0)}m² - $${quote.price.toLocaleString('es-CO')}</span>
+                  </div>
+                  <p class="small" style="margin-top: 4px;">${quote.date}</p>
+                </div>
+              `;
+              }).join('')}
+            </div>
+          ` : `
+            <div class="card mt-2" style="text-align: center; padding: 40px;">
+              <p class="small">No hay cotizaciones guardadas</p>
+              <button class="btn mt-2" onclick="navigate('quote')">Crear Nueva</button>
+            </div>
+          `}
+          
+          <nav class="tab">
+            <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+            <div onclick="navigate('quote')">📐<div class="small">Cotizar</div></div>
+            <div class="active">📂<div class="small">Historial</div></div>
+            <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+          </nav>
+        </main>
+      `;
+    }
+
+    function renderQuote() {
+      const area = calculateArea();
+      const price = calculatePrice();
+
+      if (quoteStep === 1) {
+        return `
+          <main class="wrap">
+            <div class="step-indicator">Paso 1 de 5</div>
+            <h1>Datos del cliente</h1>
+            <div class="card mt-2" style="display: grid; gap: 16px;">
+              <div>
+                <p class="small mb-1">Nombre completo</p>
+                <input class="input" placeholder="Juan Pérez" value="${formData.client}"
+                  oninput="formData.client = this.value;" />
+              </div>
+              <div>
+                <p class="small mb-1">Proyecto</p>
+                <input class="input" placeholder="Casa habitación" value="${formData.project}"
+                  oninput="formData.project = this.value;" />
+              </div>
+              <button class="btn mt-2" onclick="nextStep()">CONTINUAR →</button>
+            </div>
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div class="active">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      } else if (quoteStep === 2) {
+        return `
+          <main class="wrap">
+            <div class="step-indicator">Paso 2 de 5</div>
+            <h1>Área del terreno</h1>
+            
+            <div class="card mt-2">
+              <p class="small mb-2">¿Cómo quieres ingresar el área?</p>
+              <div class="grid">
+                <div class="toggle-option ${formData.areaMode === 'dimensions' ? 'active' : ''}"
+                     onclick="setAreaMode('dimensions')">
+                  Dimensiones
+                </div>
+                <div class="toggle-option ${formData.areaMode === 'direct' ? 'active' : ''}"
+                     onclick="setAreaMode('direct')">
+                  Área Directa
+                </div>
+              </div>
+            </div>
+
+            ${formData.areaMode === 'dimensions' ? `
+              <div class="card">
+                <p class="small mb-2">Forma del lote</p>
+                <div class="grid">
+                  <div class="toggle-option ${formData.lotShape === 'rectangular' ? 'active' : ''}"
+                       onclick="setLotShape('rectangular')">
+                    Rectangular
+                  </div>
+                  <div class="toggle-option ${formData.lotShape === 'irregular' ? 'active' : ''}"
+                       onclick="setLotShape('irregular')">
+                    Irregular
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="card">
+                <p class="small mb-1">Área primer piso (m²)</p>
+                <input class="input" type="number" value="${formData.directArea}" step="0.1"
+                  oninput="formData.directArea = this.value; updateCalculations();" />
+                <p class="small" style="color: var(--muted); margin-top: 8px;">
+                  El lote se calculará según ocupación. Ingresa dimensiones para volados:
+                </p>
+              </div>
+            `}
+
+            <div class="card">
+              <p class="small mb-2" style="color: var(--accent);">Ingresa valores directamente en el diagrama:</p>
+              ${getInteractiveDiagram()}
+            </div>
+
+            <div class="card">
+              <div>
+                <p class="small mb-1">Índice de ocupación: <span id="occ-display">${formData.occ}%</span></p>
+                <input type="range" min="50" max="100" value="${formData.occ}"
+                  oninput="formData.occ = parseInt(this.value); updateCalculations();" />
+              </div>
+
+              <div class="card mt-2" style="text-align: center; background: var(--bg);">
+                <p class="small">Área del lote</p>
+                <h1 id="lot-display">${area.lot.toFixed(2)} m²</h1>
+                <p class="small mt-2">Área primer piso</p>
+                <h3 id="first-display" style="color: var(--accent)">${area.first.toFixed(2)} m²</h3>
+              </div>
+
+              <div class="flex-between mt-2" style="gap: 12px;">
+                <button class="btn btn-secondary" onclick="prevStep()" style="flex: 1;">← ATRÁS</button>
+                <button class="btn" onclick="nextStep()" style="flex: 2;">CONTINUAR →</button>
+              </div>
+            </div>
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div class="active">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      } else if (quoteStep === 3) {
+        return `
+          <main class="wrap">
+            <div class="step-indicator">Paso 3 de 5</div>
+            <h1>Área de volados</h1>
+            <div class="card mt-2" style="display: grid; gap: 16px;">
+              <div>
+                <p class="small mb-1">Número de pisos</p>
+                <select onchange="formData.floors = parseInt(this.value); render();">
+                  ${[1,2,3,4,5,6,7,8,9,10].map(n => `
+                    <option value="${n}" ${formData.floors === n ? 'selected' : ''}>${n} ${n === 1 ? 'piso' : 'pisos'}</option>
+                  `).join('')}
+                </select>
+              </div>
+
+              ${formData.floors > 1 ? `
+                <div>
+                  <p class="small mb-1">Tamaño del volado (metros)</p>
+                  <input class="input" type="number" step="0.01" value="${formData.overhangSize}"
+                    oninput="formData.overhangSize = parseFloat(this.value); render();" />
+                </div>
+
+                <div>
+                  <p class="small mb-2">Selecciona las fachadas con volado</p>
+                  <div style="display: grid; gap: 8px;">
+                    <div class="checkbox ${formData.facades.frontal ? 'checked' : ''}" 
+                         onclick="toggleFacade('frontal')">
+                      <span>Frontal (${area.frontal.toFixed(1)}m)</span>
+                    </div>
+                    <div class="checkbox ${formData.facades.posterior ? 'checked' : ''}"
+                         onclick="toggleFacade('posterior')">
+                      <span>Posterior (${area.posterior.toFixed(1)}m)</span>
+                    </div>
+                    <div class="checkbox ${formData.facades.lateralLeft ? 'checked' : ''}"
+                         onclick="toggleFacade('lateralLeft')">
+                      <span>Lateral Izquierdo (${area.latIzq.toFixed(1)}m)</span>
+                    </div>
+                    <div class="checkbox ${formData.facades.lateralRight ? 'checked' : ''}"
+                         onclick="toggleFacade('lateralRight')">
+                      <span>Lateral Derecho (${area.latDer.toFixed(1)}m)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--bg);">
+                  <p class="small">Área de volado por piso</p>
+                  <h3 style="color: var(--accent)">${area.overhangArea.toFixed(2)} m²</h3>
+                  <p class="small mt-2">Área total piso superior</p>
+                  <h3>${area.upperFloorArea.toFixed(2)} m²</h3>
+                </div>
+              ` : ''}
+
+              <div class="card" style="text-align: center; background: var(--bg);">
+                <p class="small">Área Total Estimada</p>
+                <h1 style="color: var(--accent)">${area.total.toFixed(2)} m²</h1>
+              </div>
+
+              <div class="flex-between" style="gap: 12px;">
+                <button class="btn btn-secondary" onclick="prevStep()" style="flex: 1;">← ATRÁS</button>
+                <button class="btn" onclick="nextStep()" style="flex: 2;">CONTINUAR →</button>
+              </div>
+            </div>
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div class="active">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      } else if (quoteStep === 4) {
+        return `
+          <main class="wrap">
+            <div class="step-indicator">Paso 4 de 5</div>
+            <h1>Servicios</h1>
+
+            <div class="card mt-2">
+              <h3 class="mb-2">Paquete Completo</h3>
+              <div class="service-item ${formData.hasCompletePackage ? 'selected' : ''}"
+                   onclick="toggleCompletePackage()">
+                <div>
+                  <div style="font-weight: 600">${config.completePackage.name}</div>
+                  <div class="small">$${config.completePackage.price.toLocaleString('es-CO')}${config.completePackage.unit || '/m²'}</div>
+                </div>
+              </div>
+            </div>
+
+            ${!formData.hasCompletePackage ? `
+              <div class="card">
+                <h3 class="mb-2">Sub-Paquetes</h3>
+                ${Object.keys(config.subPackages).map(id => `
+                  <div class="service-item ${formData.selectedSubPackages.includes(id) ? 'selected' : ''}"
+                       onclick="toggleSubPackage('${id}')">
+                    <div>
+                      <div style="font-weight: 600">${config.subPackages[id].name}</div>
+                      <div class="small">$${config.subPackages[id].price.toLocaleString('es-CO')}${config.subPackages[id].unit || '/m²'}</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="card">
+                <h3 class="mb-2">Servicios Individuales</h3>
+                ${Object.keys(config.services).map(id => {
+                  if (formData.selectedSubPackages.includes('installations') && 
+                      (id === 'elec' || id === 'hydro')) {
+                    return '';
+                  }
+                  return `
+                    <div class="service-item ${formData.selectedServices.includes(id) ? 'selected' : ''}"
+                         onclick="toggleService('${id}')">
+                      <div>
+                        <div style="font-weight: 600">${config.services[id].name}</div>
+                        <div class="small">$${config.services[id].price.toLocaleString('es-CO')}${config.services[id].unit || '/m²'}</div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : ''}
+
+            <div class="card">
+              <div class="flex-between mb-1">
+                <span class="small">Área total</span>
+                <span class="small">${area.total.toFixed(2)} m²</span>
+              </div>
+              <div class="flex-between mt-2" style="padding-top: 12px; border-top: 1px solid var(--line);">
+                <span style="font-weight: 600">Valor Total</span>
+                <span style="font-size: 20px; font-weight: 700; color: var(--accent)">
+                  $${price.toLocaleString('es-CO')}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex-between mt-2" style="gap: 12px;">
+              <button class="btn btn-secondary" onclick="prevStep()" style="flex: 1;">← ATRÁS</button>
+              <button class="btn" onclick="nextStep()" style="flex: 2;">CONTINUAR →</button>
+            </div>
+
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div class="active">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      } else {
+        const basePrice = price + (formData.discount || 0);
+        const finalPrice = price;
+
+        return `
+          <main class="wrap">
+            <div class="step-indicator">Paso 5 de 5</div>
+            <h1>Resumen</h1>
+
+            <div class="card mt-2">
+              <h3 class="mb-1">${formData.client}</h3>
+              <p class="small">${formData.project}</p>
+              <p class="small" style="margin-top: 4px;">Área: ${area.total.toFixed(2)} m²</p>
+            </div>
+
+            <div class="card">
+              <h3 class="mb-2">Servicios Adicionales</h3>
+              <p class="small mb-2" style="color: var(--muted);">
+                Agrega servicios extras no incluidos en los paquetes
+              </p>
+              
+              ${showAdditionalServiceForm ? `
+                <div class="inline-form">
+                  <h3 class="mb-2">Nuevo Servicio Adicional</h3>
+                  <div style="display: grid; gap: 12px;">
+                    <div>
+                      <p class="small mb-1">Nombre del servicio</p>
+                      <input class="input" placeholder="Ej: Estudio de suelos" 
+                        value="${newAdditionalServiceData.name}"
+                        oninput="newAdditionalServiceData.name = this.value" />
+                    </div>
+                    <div>
+                      <p class="small mb-1">Valor</p>
+                      <input class="input" type="number" placeholder="Ej: 3500000"
+                        value="${newAdditionalServiceData.price}"
+                        oninput="newAdditionalServiceData.price = this.value" />
+                    </div>
+                    <div class="grid">
+                      <button class="btn-secondary" onclick="toggleAdditionalServiceForm()">Cancelar</button>
+                      <button class="btn" onclick="saveAdditionalService()">Guardar</button>
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${formData.additionalServices.length > 0 ? `
+                ${formData.additionalServices.map((service, i) => `
+                  <div class="additional-service-item">
+                    <div>
+                      <div style="font-weight: 600">${service.name}</div>
+                      <div class="small">$${service.price.toLocaleString('es-CO')}${service.unit || '/unidad'}</div>
+                    </div>
+                    <button class="btn-small btn-danger" onclick="removeAdditionalService(${i})">×</button>
+                  </div>
+                `).join('')}
+              ` : !showAdditionalServiceForm ? '<p class="small" style="color: var(--muted); padding: 12px; background: var(--bg); border-radius: 12px;">No hay servicios adicionales</p>' : ''}
+              
+              <button class="btn-secondary btn-small mt-2" onclick="toggleAdditionalServiceForm()">
+                ${showAdditionalServiceForm ? '× Cancelar' : '+ Agregar Servicio Adicional'}
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="flex-between mb-2">
+                <span>Valor base</span>
+                <span style="font-weight: 600">$${basePrice.toLocaleString('es-CO')}</span>
+              </div>
+              
+              <div>
+                <p class="small mb-1">Descuento (ajuste de valor)</p>
+                <input class="input" type="number" step="100" value="${formData.discount || 0}"
+                  oninput="formData.discount = parseInt(this.value) || 0; updateDiscountPrice();" 
+                  placeholder="0" />
+                <p class="small" style="color: var(--muted); margin-top: 4px;">Ej: 7800 para redondear valores</p>
+              </div>
+              
+              <div class="flex-between mt-2" style="padding-top: 12px; border-top: 1px solid var(--line);">
+                <span style="font-weight: 600; font-size: 16px;">Valor Final</span>
+                <span id="final-price-display" style="font-size: 24px; font-weight: 700; color: var(--accent)">
+                  $${finalPrice.toLocaleString('es-CO')}
+                </span>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="mb-2">Plan de Pagos</h3>
+              <div style="display: grid; gap: 10px;">
+                ${config.paymentPlan.payments.map((payment, i) => `
+                  <div class="flex-between">
+                    <span>${payment.percentage}% ${payment.name}</span>
+                    <span id="payment-${i + 1}" style="font-weight: 600">$${Math.round(finalPrice * payment.percentage / 100).toLocaleString('es-CO')}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="flex-between mt-2" style="gap: 12px;">
+              <button class="btn btn-secondary" onclick="prevStep()" style="flex: 1;">← ATRÁS</button>
+              <button class="btn" onclick="saveQuote()" style="flex: 2;">GUARDAR</button>
+            </div>
+
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div class="active">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div onclick="navigate('settings')">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      }
+    }
+
+    function renderSettings() {
+      if (settingsPage === 'menu') {
+        return `
+          <main class="wrap">
+            <h1>Ajustes</h1>
+            <p class="small">Configuración de la app</p>
+            <div class="grid mt-2">
+              <div class="card" onclick="settingsPage = 'tarifas'; render();" style="cursor: pointer;">
+                <h3>💰 Tarifas</h3>
+                <p class="small">Configurar precios</p>
+              </div>
+              <div class="card" onclick="settingsPage = 'pagos'; render();" style="cursor: pointer;">
+                <h3>💳 Plan de Pagos</h3>
+                <p class="small">Configurar cuotas</p>
+              </div>
+            </div>
+            
+            <div class="card mt-2" onclick="settingsPage = 'cuenta-cobro'; render();" style="cursor: pointer;">
+              <h3>📋 Cuenta de Cobro</h3>
+              <p class="small">Configurar datos para facturación</p>
+            </div>
+            
+            <div class="card mt-2" style="border: 2px solid #ff3b30;">
+              <h3 style="color: #ff3b30;">🗑️ Limpiar Historial</h3>
+              <p class="small mb-2">Eliminar todas las cotizaciones guardadas (${savedQuotes.length})</p>
+              <button class="btn btn-danger" onclick="clearAllHistory()" ${savedQuotes.length === 0 ? 'disabled style="opacity: 0.5;"' : ''}>
+                Limpiar Todo el Historial
+              </button>
+            </div>
+            
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div onclick="navigate('quote')">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div class="active">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      } else if (settingsPage === 'tarifas') {
+        return `
+          <main class="wrap">
+            <button class="btn-secondary btn-small mb-2" onclick="settingsPage = 'menu'; render();">
+              ← Volver a Ajustes
+            </button>
+            <h1>Tarifas</h1>
+            <p class="small">Precios por servicio</p>
+            
+            <button class="btn mt-2 mb-2" onclick="toggleNewServiceForm()">
+              ${showNewServiceForm ? '× Cancelar' : '+ Nuevo Servicio'}
+            </button>
+            
+            ${showNewServiceForm ? `
+              <div class="inline-form">
+                <h3 class="mb-2">Nuevo Servicio</h3>
+                <div style="display: grid; gap: 12px;">
+                  <div>
+                    <p class="small mb-1">Nombre del servicio</p>
+                    <input class="input" placeholder="Ej: Estudio geotécnico" 
+                      value="${newServiceData.name}"
+                      oninput="newServiceData.name = this.value" />
+                  </div>
+                  <div>
+                    <p class="small mb-1">Unidad</p>
+                    <select onchange="newServiceData.unit = this.value">
+                      ${['/m²', '/obra', '/trabajo', '/unidad', '/imagen'].map(u => `
+                        <option value="${u}" ${newServiceData.unit === u ? 'selected' : ''}>${u}</option>
+                      `).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <p class="small mb-1">Valor</p>
+                    <input class="input" type="number" placeholder="Ej: 8500000"
+                      value="${newServiceData.price}"
+                      oninput="newServiceData.price = this.value" />
+                  </div>
+                  <div class="grid">
+                    <button class="btn-secondary" onclick="toggleNewServiceForm()">Cancelar</button>
+                    <button class="btn" onclick="saveNewService()">Guardar</button>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            
+            <div class="card mt-2">
+              <h3 class="mb-2">Servicios Individuales</h3>
+              ${Object.keys(config.services).map(id => `
+                <div class="mb-2" style="padding: 12px; background: var(--bg); border-radius: 12px;">
+                  <div class="flex-between mb-1">
+                    <span style="font-weight: 600">${config.services[id].name}</span>
+                    ${id.startsWith('custom_') ? `
+                      <button class="btn-small btn-danger" onclick="deleteService('${id}')">Eliminar</button>
+                    ` : ''}
+                  </div>
+                  <p class="small">$${config.services[id].price.toLocaleString('es-CO')}${config.services[id].unit}</p>
+                </div>
+              `).join('')}
+            </div>
+            
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div onclick="navigate('quote')">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div class="active">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      } else if (settingsPage === 'pagos') {
+        return `
+          <main class="wrap">
+            <button class="btn-secondary btn-small mb-2" onclick="settingsPage = 'menu'; render();">
+              ← Volver a Ajustes
+            </button>
+            <h1>Plan de Pagos</h1>
+            <p class="small">Configura los pagos (máximo 10)</p>
+            
+            <button class="btn mt-2 mb-2" onclick="toggleNewPaymentForm()">
+              ${showNewPaymentForm ? '× Cancelar' : '+ Nuevo Pago'}
+            </button>
+            
+            ${showNewPaymentForm ? `
+              <div class="inline-form">
+                <h3 class="mb-2">Nuevo Pago</h3>
+                <div style="display: grid; gap: 12px;">
+                  <div>
+                    <p class="small mb-1">Nombre del pago</p>
+                    <input class="input" placeholder="Ej: Avance 50%" 
+                      value="${newPaymentData.name}"
+                      oninput="newPaymentData.name = this.value" />
+                  </div>
+                  <div>
+                    <p class="small mb-1">Porcentaje</p>
+                    <input class="input" type="number" placeholder="Ej: 25" min="1" max="100"
+                      value="${newPaymentData.percentage}"
+                      oninput="newPaymentData.percentage = this.value" />
+                  </div>
+                  <div class="grid">
+                    <button class="btn-secondary" onclick="toggleNewPaymentForm()">Cancelar</button>
+                    <button class="btn" onclick="saveNewPayment()">Guardar</button>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            
+            <div class="card" style="margin-bottom: 100px;">
+              <h3 class="mb-2">Pagos Actuales</h3>
+              <p class="small mb-2" style="color: var(--muted);">Suma total debe ser 100%</p>
+              
+              ${config.paymentPlan.payments.map((payment, i) => `
+                <div class="mb-2" style="padding: 12px; background: var(--bg); border-radius: 12px;">
+                  <div class="flex-between mb-2">
+                    <span style="font-weight: 600">Pago ${i + 1}</span>
+                    <button class="btn-small btn-danger" onclick="deletePayment(${i})">×</button>
+                  </div>
+                  <p class="small mb-1">Nombre</p>
+                  <input class="input mb-1" value="${payment.name}"
+                    oninput="updatePaymentName(${i}, this.value)" />
+                  <p class="small mb-1">Porcentaje</p>
+                  <input class="input" type="number" value="${payment.percentage}"
+                    oninput="updatePaymentPercentage(${i}, this.value)" />
+                </div>
+              `).join('')}
+              
+              <div class="flex-between mt-2" style="padding-top: 12px; border-top: 1px solid var(--line);">
+                <span style="font-weight: 600">Total:</span>
+                <span id="payment-total" style="font-weight: 600; color: ${config.paymentPlan.payments.reduce((a,p) => a + p.percentage, 0) === 100 ? 'var(--accent)' : '#ff3b30'}">
+                  ${config.paymentPlan.payments.reduce((a,p) => a + p.percentage, 0)}%
+                </span>
+              </div>
+            </div>
+            
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div onclick="navigate('quote')">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div class="active">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      } else if (settingsPage === 'cuenta-cobro') {
+        const inv = config.invoice;
+        return `
+          <main class="wrap">
+            <button class="btn-secondary btn-small mb-2" onclick="settingsPage = 'menu'; render();">
+              ← Volver a Ajustes
+            </button>
+            <h1>Cuenta de Cobro</h1>
+            <p class="small">Configura los datos para facturación</p>
+            
+            <!-- DATOS DE LA EMPRESA -->
+            <div class="card mt-2">
+              <div class="flex-between mb-2">
+                <h3>🏢 Datos de la Empresa</h3>
+                <div class="checkbox ${inv.company.enabled ? 'checked' : ''}" 
+                     onclick="toggleInvoiceSection('company')" 
+                     style="width: auto; padding: 8px 12px; margin: 0;">
+                </div>
+              </div>
+              
+              ${inv.company.enabled ? `
+                <div style="display: grid; gap: 12px;">
+                  <div>
+                    <p class="small mb-1">Logo</p>
+                    ${inv.company.logo ? `
+                      <div style="margin-bottom: 8px;">
+                        <img src="${inv.company.logo}" style="max-width: 150px; max-height: 80px; border-radius: 8px; border: 1px solid var(--line);" />
+                      </div>
+                      <button class="btn-small btn-danger" onclick="removeLogo()">Eliminar Logo</button>
+                    ` : `
+                      <input type="file" accept="image/*" onchange="uploadLogo(event)" 
+                        style="padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); width: 100%;" />
+                    `}
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Nombre de la empresa</p>
+                    <input class="input" placeholder="Ej: Constructora La SAYE" 
+                      value="${inv.company.name}"
+                      oninput="updateInvoiceField('company', 'name', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">NIT/RUT/RFC</p>
+                    <input class="input" placeholder="Ej: 900123456-7" 
+                      value="${inv.company.nit}"
+                      oninput="updateInvoiceField('company', 'nit', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Dirección</p>
+                    <input class="input" placeholder="Ej: Calle 45 #12-34, Pasto" 
+                      value="${inv.company.address}"
+                      oninput="updateInvoiceField('company', 'address', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Teléfono</p>
+                    <input class="input" placeholder="Ej: +57 312 456 7890" 
+                      value="${inv.company.phone}"
+                      oninput="updateInvoiceField('company', 'phone', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Email</p>
+                    <input class="input" type="email" placeholder="Ej: contacto@lasaye.com" 
+                      value="${inv.company.email}"
+                      oninput="updateInvoiceField('company', 'email', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Sitio web (opcional)</p>
+                    <input class="input" placeholder="Ej: www.lasaye.com" 
+                      value="${inv.company.website}"
+                      oninput="updateInvoiceField('company', 'website', this.value)" />
+                  </div>
+                </div>
+              ` : '<p class="small" style="color: var(--muted);">Desactivado - No aparecerá en la cuenta de cobro</p>'}
+            </div>
+            
+            <!-- REPRESENTANTE LEGAL -->
+            <div class="card">
+              <div class="flex-between mb-2">
+                <h3>👤 Representante Legal</h3>
+                <div class="checkbox ${inv.representative.enabled ? 'checked' : ''}" 
+                     onclick="toggleInvoiceSection('representative')" 
+                     style="width: auto; padding: 8px 12px; margin: 0;">
+                </div>
+              </div>
+              
+              ${inv.representative.enabled ? `
+                <div style="display: grid; gap: 12px;">
+                  <div>
+                    <p class="small mb-1">Firma digital</p>
+                    ${inv.representative.signature ? `
+                      <div style="margin-bottom: 8px;">
+                        <img src="${inv.representative.signature}" style="max-width: 200px; max-height: 80px; border-radius: 8px; border: 1px solid var(--line); background: white; padding: 8px;" />
+                      </div>
+                      <button class="btn-small btn-danger" onclick="removeSignature()">Eliminar Firma</button>
+                    ` : `
+                      <input type="file" accept="image/*" onchange="uploadSignature(event)" 
+                        style="padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); width: 100%;" />
+                    `}
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Nombre completo</p>
+                    <input class="input" placeholder="Ej: Miguel Ángel Sarria" 
+                      value="${inv.representative.name}"
+                      oninput="updateInvoiceField('representative', 'name', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Cargo</p>
+                    <input class="input" placeholder="Ej: Gerente General" 
+                      value="${inv.representative.position}"
+                      oninput="updateInvoiceField('representative', 'position', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Documento de identidad</p>
+                    <input class="input" placeholder="Ej: CC 1234567890" 
+                      value="${inv.representative.document}"
+                      oninput="updateInvoiceField('representative', 'document', this.value)" />
+                  </div>
+                </div>
+              ` : '<p class="small" style="color: var(--muted);">Desactivado - No aparecerá en la cuenta de cobro</p>'}
+            </div>
+            
+            <!-- DATOS BANCARIOS -->
+            <div class="card">
+              <div class="flex-between mb-2">
+                <h3>🏦 Datos Bancarios</h3>
+                <div class="checkbox ${inv.banking.enabled ? 'checked' : ''}" 
+                     onclick="toggleInvoiceSection('banking')" 
+                     style="width: auto; padding: 8px 12px; margin: 0;">
+                </div>
+              </div>
+              
+              ${inv.banking.enabled ? `
+                <div style="display: grid; gap: 12px;">
+                  <div>
+                    <p class="small mb-1">Banco</p>
+                    <input class="input" placeholder="Ej: Banco de Bogotá" 
+                      value="${inv.banking.bank}"
+                      oninput="updateInvoiceField('banking', 'bank', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Tipo de cuenta</p>
+                    <select onchange="updateInvoiceField('banking', 'accountType', this.value)">
+                      <option value="Ahorros" ${inv.banking.accountType === 'Ahorros' ? 'selected' : ''}>Ahorros</option>
+                      <option value="Corriente" ${inv.banking.accountType === 'Corriente' ? 'selected' : ''}>Corriente</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Número de cuenta</p>
+                    <input class="input" placeholder="Ej: 1234567890" 
+                      value="${inv.banking.accountNumber}"
+                      oninput="updateInvoiceField('banking', 'accountNumber', this.value)" />
+                  </div>
+                  
+                  <div>
+                    <p class="small mb-1">Titular de la cuenta</p>
+                    <input class="input" placeholder="Ej: Constructora La SAYE" 
+                      value="${inv.banking.accountHolder}"
+                      oninput="updateInvoiceField('banking', 'accountHolder', this.value)" />
+                  </div>
+                </div>
+              ` : '<p class="small" style="color: var(--muted);">Desactivado - No aparecerá en la cuenta de cobro</p>'}
+            </div>
+            
+            <!-- CONFIGURACIÓN DEL DOCUMENTO -->
+            <div class="card" style="margin-bottom: 100px;">
+              <h3 class="mb-2">📄 Configuración del Documento</h3>
+              
+              <div style="display: grid; gap: 12px;">
+                <div>
+                  <p class="small mb-1">Número consecutivo actual</p>
+                  <input class="input" type="number" placeholder="1" 
+                    value="${inv.document.consecutiveNumber}"
+                    oninput="updateInvoiceField('document', 'consecutiveNumber', parseInt(this.value) || 1)" />
+                  <p class="small" style="color: var(--muted); margin-top: 4px;">Se incrementa automáticamente con cada cuenta de cobro</p>
+                </div>
+                
+                <div>
+                  <p class="small mb-1">Términos y condiciones</p>
+                  <textarea class="input" rows="3" placeholder="Ej: Pago a realizarse según plan de pagos acordado."
+                    oninput="updateInvoiceField('document', 'terms', this.value)">${inv.document.terms}</textarea>
+                </div>
+                
+                <div>
+                  <p class="small mb-1">Nota al pie (opcional)</p>
+                  <input class="input" placeholder="Ej: Gracias por su confianza" 
+                    value="${inv.document.footerNote}"
+                    oninput="updateInvoiceField('document', 'footerNote', this.value)" />
+                </div>
+              </div>
+            </div>
+            
+            <button class="btn mt-2" onclick="saveConfig(); showNotification('Configuración guardada correctamente', 'success');">
+              💾 Guardar Configuración
+            </button>
+            
+            <nav class="tab">
+              <div onclick="navigate('dashboard')">🏠<div class="small">Inicio</div></div>
+              <div onclick="navigate('quote')">📐<div class="small">Cotizar</div></div>
+              <div onclick="navigate('history')">📂<div class="small">Historial</div></div>
+              <div class="active">⚙️<div class="small">Ajustes</div></div>
+            </nav>
+          </main>
+        `;
+      }
+    }
+
+    render();
+    
+    // PWA - Registrar Service Worker (solo si NO es file:// y el archivo existe)
+    if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+      window.addEventListener('load', () => {
+        // Intentar registrar pero no mostrar errores en consola
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(registration => {
+            console.log('✅ PWA habilitado');
+          })
+          .catch(() => {
+            // Silenciosamente ignorar error - funciona sin PWA
+            console.log('ℹ️ Ejecutando sin PWA (funcionalidad completa disponible)');
+          });
+      });
+    }
+  </script>
+</body>
+</html>

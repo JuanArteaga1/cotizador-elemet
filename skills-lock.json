@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "skills": {
+    "a11y-checker": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/a11y-checker/SKILL.md",
+      "computedHash": "90839687aff1f3d885d4ffc9331dd2874703d07b5f538e289772a6b539c7abad"
+    },
+    "animation-creator": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/animation-creator/SKILL.md",
+      "computedHash": "bddc64a6318f9242064ceb4f9bfcab983df8b448b6df9a71d574f81ad2cd1305"
+    },
+    "color-tools": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/color-tools/SKILL.md",
+      "computedHash": "1a34504b4d2107cf3a727bf0e7800fe077e8246513c8ca00cb7465f623348d7e"
+    },
+    "css-inspector": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/css-inspector/SKILL.md",
+      "computedHash": "c427754bcd50c1d8e241f2efe6d0288b64928457cef7d4346316caf72f370dab"
+    },
+    "design-tokens": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/design-tokens/SKILL.md",
+      "computedHash": "383259c408ebc18c3888818141d6cde7b05de5ddf02b9f7f0906ff03eb9399a1"
+    },
+    "designing-frontend": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "e79853518bba5c6a3ddc3e666e3a11e0ec2366bb892fae999ff0fea1d574f050"
+    },
+    "frontend-aesthetics": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "c285e0ff43380e5c4527af675f6327e50d64dfb0c1f4eba1ecf9d0a23f22cf8d"
+    },
+    "frontend-design": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "fc38d3f0fc301fab0a91d4f834897489be0ec5cf74f715b2677f2176e90a5f9c"
+    },
+    "layout-builder": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/layout-builder/SKILL.md",
+      "computedHash": "804fc9688b35fedf658e40cb7a420c067278c9cf5f62716ed8d227dad90ef706"
+    },
+    "motion-scale": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "0457b654caead8ca581d4f120064086d750fac24b0894379954fd645b7b8cce0"
+    },
+    "performance-analyzer": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/performance-analyzer/SKILL.md",
+      "computedHash": "4b3cc9483b5b5ec89a805b458f3f9493fe4c6360542c4593649413fd37562768"
+    },
+    "responsive-helper": {
+      "source": "andronics/claude-plugin-css-pro",
+      "sourceType": "github",
+      "skillPath": "skills/responsive-helper/SKILL.md",
+      "computedHash": "c927855ebbf45d8ef593fd8c050db84d0df118ecc106bb116102557b69c6374a"
+    }
+  }
+}

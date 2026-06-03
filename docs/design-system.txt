@@ -1,0 +1,284 @@
+================================================================================
+  ELEMENT - COTIZADOR PROFESIONAL
+  Design System
+================================================================================
+
+1. IDENTIDAD DE MARCA
+--------------------------------------------------------------------------------
+  Nombre:           ELEMENT
+  Eslogan:          Cotizador Profesional
+  Sector:           Construcción / Arquitectura / Ingeniería
+  Tono:             Premium, minimalista, profesional, oscuro, lujoso
+  Público:          Constructoras, Arquitectos, Ingenieros civiles en Colombia
+  Diferenciador:    Diseño oscuro con acentos dorados, mobile-first, PWA
+
+
+2. PALETA DE COLORES
+--------------------------------------------------------------------------------
+  Variable CSS        | Color       | HEX         | Uso
+  --------------------|-------------|-------------|-------------------------------
+  --bg                | Negro       | #0a0a0a     | Fondo principal de la app
+  --card              | Gris oscuro | #1a1a1a     | Fondos de tarjetas y modales
+  --text              | Blanco      | #ffffff     | Texto principal
+  --muted             | Gris medio  | #999999     | Texto secundario, etiquetas
+  --line              | Gris línea  | #2a2a2a     | Bordes, separadores
+  --accent            | Dorado      | #b69462     | Acento principal, botones CTA
+  --accent-light      | Dorado 15%  | rgba(212,175,55,0.15) | Fondos hover, active
+  --danger            | Rojo        | #ff3b30     | Acciones destructivas
+  --success           | Verde       | #34c759     | Estados completados, éxito
+
+  Reglas:
+  - Botón primario: fondo --accent, texto #000 (negro, no blanco, para contraste)
+  - Texto sobre fondos oscuros: siempre --text o --muted
+  - Estados "completado/finalizado": usar verde #34c759
+  - Errores: usar rojo #ff3b30 con fondos rgba(255,59,48,0.15)
+
+
+3. TIPOGRAFÍA
+--------------------------------------------------------------------------------
+  Principal:   -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif
+  Estilo:      Sistema nativo Apple San Francisco (SF Pro Display)
+  
+  Jerarquía:
+  - Títulos h1: 32px, weight 700
+  - Títulos h3: 18px, weight 600
+  - Cuerpo:     16px
+  - Small:      12px, color --muted (#999)
+  - Botones:    16px, weight 600
+
+  La app delega en la tipografía del sistema operativo (iOS SF Pro,
+  Android Roboto/Noto, Windows Segoe UI) para máxima compatibilidad nativa.
+
+
+4. ESPACIADO
+--------------------------------------------------------------------------------
+  Unidad base: 4px (sistema Apple HIG)
+  
+  Padding tarjetas:     20px
+  Padding inputs:       14px 16px
+  Gap grid:             12px
+  Separación inferior:  16px (mb-2), 8px (mb-1)
+  Padding wrap:         18px horizontal, 18px top, 120px bottom (para tab)
+
+
+5. COMPONENTES UI
+--------------------------------------------------------------------------------
+
+  5.1 TARJETAS (Card)
+    - Background: var(--card) #1a1a1a
+    - Borde: 1px solid var(--line) #2a2a2a
+    - Border-radius: 24px
+    - Padding: 20px
+    - Margin-bottom: 12px
+
+  5.2 INPUTS
+    - Width: 100%
+    - Padding: 14px 16px
+    - Border-radius: 14px
+    - Border: 1px solid var(--line)
+    - Background: var(--bg) #0a0a0a
+    - Color: var(--text)
+    - Font-size: 16px
+    - Focus: outline none, border-color var(--accent)
+
+  5.3 BOTONES
+    - Primary (btn):
+      - Width: 100%
+      - Padding: 16px
+      - Border: none
+      - Border-radius: 16px
+      - Background: var(--accent) #b69462
+      - Color: #000 (negro)
+      - Font-weight: 600, font-size: 16px
+      - Active: opacity 0.8, transform scale(0.98)
+    
+    - Secondary (btn-secondary):
+      - Background: var(--card) #1a1a1a
+      - Color: var(--text)
+      - Border: 1px solid var(--line)
+    
+    - Small (btn-small):
+      - Padding: 10px 16px
+      - Font-size: 14px
+      - Width: auto, display: inline-block
+    
+    - Danger (btn-danger):
+      - Background: #ff3b30
+      - Color: white
+
+  5.4 SELECT
+    - Igual que input pero con cursor: pointer
+    - Apariencia nativa del SO
+
+  5.5 TOGGLE OPTION
+    - Padding: 12px
+    - Border-radius: 12px
+    - Border: 2px solid var(--line)
+    - Text-align: center
+    - Font-weight: 600
+    - Active: border-color var(--accent), bg rgba(212,175,55,0.15), color var(--accent)
+
+  5.6 SERVICE ITEM / CHECKBOX
+    - Padding: 14px
+    - Border-radius: 14px
+    - Border: 2px solid var(--line)
+    - Background: var(--card)
+    - Cursor: pointer
+    - Display: flex, justify-content: space-between
+    - Selected: border-color var(--accent), bg rgba(212,175,55,0.15)
+    - Selected::after: checkmark "✓" en color acento
+
+  5.7 DIAGRAM INPUT (SVG embebido)
+    - Width: 60px
+    - Padding: 6px 8px
+    - Border-radius: 8px
+    - Border: 1px solid var(--accent)
+    - Background: var(--bg)
+    - Color: var(--accent)
+    - Font-size: 14px, weight 600
+    - Text-align: center
+
+  5.8 INLINE FORM
+    - Padding: 20px
+    - Border-radius: 20px
+    - Border: 2px solid var(--accent)
+    - Background: rgba(212,175,55,0.05)
+    - Margin-bottom: 16px
+    - Animation: slideDown 0.3s ease
+
+  5.9 HISTORY ITEM
+    - Padding: 14px
+    - Border-radius: 14px
+    - Border: 1px solid var(--line)
+    - Background: var(--card)
+    - Margin-bottom: 10px
+    - Cursor: pointer
+    - Active: opacity 0.8
+
+  5.10 ADDITIONAL SERVICE ITEM
+    - Padding: 14px
+    - Border-radius: 14px
+    - Border: 2px solid var(--accent)
+    - Background: rgba(212,175,55,0.05)
+
+  5.11 LOGO CONTAINER
+    - Width/height: 120px
+    - Background: var(--accent)
+    - Border-radius: 20px
+    - Box-shadow: 0 8px 32px rgba(182,148,98,0.3)
+    - Display: flex, align-items center, justify-content center
+
+
+6. LAYOUT
+--------------------------------------------------------------------------------
+  Contenedor principal (.wrap):
+    - max-width: 430px (formato mobile-first tipo iPhone)
+    - margin: auto
+    - min-height: 100vh
+    - padding: 18px 18px 120px (120px para evitar solapamiento con tab)
+  
+  Grid:
+    - 2 columnas, gap: 12px
+  
+  Bottom Tab Navigation:
+    - Position: fixed, bottom: 20px
+    - left: 50%, transform: translateX(-50%)
+    - width: calc(100% - 32px), max-width: 400px
+    - Background: var(--card)
+    - Border: 1px solid var(--line)
+    - Border-radius: 24px
+    - Padding: 12px
+    - Display: grid, 4 columnas iguales
+    - z-index: 100
+  
+  Step Indicator:
+    - Text-align: center
+    - Color: var(--muted)
+    - Font-size: 14px
+    - margin-bottom: 16px
+
+
+7. ANIMACIONES
+--------------------------------------------------------------------------------
+  - slideDown (forms inline):
+    - from: opacity 0, translateY(-10px)
+    - to: opacity 1, translateY(0)
+    - duration: 0.3s, ease
+  
+  - notificationSlide:
+    - from: opacity 0, translateY(-20px)
+    - to: opacity 1, translateY(0)
+    - duration: 0.3s, ease
+  
+  - fadeIn (modal overlay):
+    - from: opacity 0
+    - to: opacity 1
+    - duration: 0.2s, ease
+  
+  - modalSlide:
+    - from: opacity 0, translateY(-20px) scale(0.95)
+    - to: opacity 1, translateY(0) scale(1)
+    - duration: 0.3s, ease
+  
+  - Botón active: opacity 0.8, scale(0.98), transition 0.2s
+
+
+8. MODALES Y NOTIFICACIONES
+--------------------------------------------------------------------------------
+  
+  Modal Overlay:
+    - Position: fixed, fullscreen
+    - Background: rgba(0,0,0,0.7)
+    - z-index: 2000
+    - Padding: 20px
+  
+  Modal Card:
+    - Background: var(--card)
+    - Border: 1px solid var(--line)
+    - Border-radius: 24px
+    - Padding: 24px
+    - max-width: 400px
+    - Box-shadow: 0 20px 60px rgba(0,0,0,0.5)
+    - Animation: modalSlide 0.3s ease
+  
+  Notification Container:
+    - Position: fixed, top: 20px
+    - left: 50%, transform: translateX(-50%)
+    - width: calc(100% - 32px), max-width: 400px
+    - z-index: 1000
+    - pointer-events: none
+  
+  Notification Toast:
+    - Padding: 16px 20px
+    - Border-radius: 16px
+    - Background: var(--card)
+    - Border: 1px solid var(--line)
+    - Font-size: 15px, weight 500
+    - Box-shadow: 0 8px 30px rgba(0,0,0,0.4)
+    - pointer-events: auto
+    - Variantes: success (verde), error (rojo), warning (naranja)
+    - Auto-destrucción a los 3 segundos
+
+
+9. ESTILOS DE CUENTA DE COBRO (INVOICE)
+--------------------------------------------------------------------------------
+  - Fondo blanco (#ffffff), texto negro (#000)
+  - max-width: 750px
+  - Fuente: Arial, sans-serif
+  - Título: 24px, bold
+  - Encabezado: flex, space-between
+  - Tabla: border-collapse, bordes #ddd
+  - Encabezados de tabla: bg #f5f5f5
+  - Total: bg #f5f5f5, border-radius 6px, 16px bold
+  - Línea de firma: 2px solid #333, 220px width
+  - @media print: oculta botones, fondo blanco, márgenes mínimos
+
+
+10. TAMAÑOS Y BREAKPOINTS
+--------------------------------------------------------------------------------
+  - Mobile: max-width 430px (diseño principal)
+  - Tab: se adapta al ancho disponible
+  - Desktop: wrap centrado con max-width 430px (como app nativa)
+  - Invoice: max-width 750px para impresión
+
+================================================================================
