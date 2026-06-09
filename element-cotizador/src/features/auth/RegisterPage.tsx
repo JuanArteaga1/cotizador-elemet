@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore, NotificationContainer } from '../../shared/hooks/useNotifications';
 import { useStore } from '../../shared/services/store';
 import logoAbbreviated from '../../assets/LOGO ABREVIADO/ELEMENThaus - Logo Abreviado White.png';
@@ -8,10 +8,18 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const showNotification = useAppStore((s) => s.showNotification);
   const login = useStore((s) => s.login);
-  const loadFromBackend = useStore((s) => s.loadFromBackend);
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [profession, setProfession] = useState<'ingeniero' | 'arquitecto' | 'maestro_obra' | ''>('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,11 +47,30 @@ export function RegisterPage() {
         phone: phone.trim() || undefined,
         password: password.trim(),
         shop_slug: SHOP_SLUG,
+        address: profession || undefined,
       });
-      const token = res.token || (res.data && res.data.token);
+      let token = res.token || (res.data && res.data.token);
       if (!token) {
         throw new Error('El servidor no devolvió un token de sesión');
       }
+
+      // Check if token is pending (no shop_id) and resolve it
+      let selectRes: any = null;
+      if (apiService.isTokenPending(token)) {
+        console.log('[REGISTER] Token is pending, resolving shop...');
+        // Save temp token to localStorage so api() can read it for selectShop
+        const tempUser = apiService.buildUserFromToken(token);
+        if (tempUser) {
+          localStorage.setItem('element_user', JSON.stringify(tempUser));
+        }
+        selectRes = await apiService.selectShop({ shop_slug: SHOP_SLUG });
+        const newToken = selectRes.token || (selectRes.data && selectRes.data.token);
+        if (newToken) {
+          token = newToken;
+          console.log('[REGISTER] Shop resolved, new token received');
+        }
+      }
+
       let user = apiService.buildUserFromToken(token);
       if (!user) {
         throw new Error('No se pudieron leer los datos del usuario desde el token');
@@ -51,6 +78,10 @@ export function RegisterPage() {
       // Fallback: try response body name, then the form name
       if (!user.name || user.name === 'Usuario') {
         const bodyName =
+          selectRes?.user?.name ||
+          selectRes?.customer?.name ||
+          selectRes?.data?.user?.name ||
+          selectRes?.data?.customer?.name ||
           res.name ||
           res.customer_name ||
           res.user?.name ||
@@ -61,9 +92,27 @@ export function RegisterPage() {
           res.data?.customer?.name;
         user = { ...user, name: bodyName || name.trim() || 'Usuario' };
       }
+      // Extract profession from response if available
+      const bodyProfession =
+        selectRes?.user?.profession ||
+        selectRes?.customer?.profession ||
+        selectRes?.data?.user?.profession ||
+        selectRes?.data?.customer?.profession ||
+        res.user?.profession ||
+        res.customer?.profession ||
+        res.data?.user?.profession ||
+        res.data?.customer?.profession;
+      if (bodyProfession) {
+        user = { ...user, profession: bodyProfession };
+      } else if (profession) {
+        user = { ...user, profession };
+      }
       login(user);
-      loadFromBackend().catch(() => {});
       showNotification(`¡Bienvenido a ELEMENT, ${user.name}!`, 'success');
+      // Activate onboarding tour for new users
+      localStorage.removeItem('element_tour_seen');
+      localStorage.removeItem('element_tour_active');
+      localStorage.removeItem('element_tour_step');
       navigate('/dashboard');
     } catch (err: any) {
       showNotification(err.message || 'Error al registrar usuario', 'error');
@@ -156,6 +205,19 @@ export function RegisterPage() {
                 onChange={(e) => setPhone(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleRegister()}
               />
+            </div>
+            <div>
+              <label className="small" style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>Profesión <span style={{ opacity: 0.5 }}>(opcional)</span></label>
+              <select
+                className="input"
+                value={profession}
+                onChange={(e) => setProfession(e.target.value as any)}
+              >
+                <option value="">Selecciona tu profesión</option>
+                <option value="ingeniero">Ingeniero</option>
+                <option value="arquitecto">Arquitecto</option>
+                <option value="maestro_obra">Maestro de Obra</option>
+              </select>
             </div>
             <div>
               <label className="small" style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>Contraseña</label>

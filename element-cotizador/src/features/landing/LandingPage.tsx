@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import logoGold from '../../assets/LOGO ABREVIADO/ELEMENThaus - Logo Abreviado Original 1.png';
 import logoWhite from '../../assets/LOGO ABREVIADO/ELEMENThaus - Logo Abreviado White.png';
 import casaImage from '../../assets/casa.jpg';
 import casa2Image from '../../assets/casa2.png';
+import { useStore } from '../../shared/services/store';
 
 const navLinks = [
   { label: 'Inicio', href: '#hero' },
@@ -12,21 +13,76 @@ const navLinks = [
   { label: 'Contacto', href: '#cta' },
 ];
 
+/** Bidirectional scroll reveal - animates in and out */
+function useScrollReveal<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setVisible(entry.isIntersecting);
+      },
+      { threshold: 0.05, rootMargin: '40px 0px 40px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, visible };
+}
+
+/** For containers with staggered children */
+function useStaggerReveal<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setVisible(entry.isIntersecting);
+      },
+      { threshold: 0.05, rootMargin: '40px 0px 40px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, visible };
+}
+
 export function LandingPage() {
   const navigate = useNavigate();
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
   const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [landingConfig, setLandingConfig] = useState<Record<string, any>>({});
   const [landingImages, setLandingImages] = useState<any[]>([]);
-  const [_landingLoaded, setLandingLoaded] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
+
+  // Fade in page smoothly after initial paint
+  useEffect(() => {
+    const t = requestAnimationFrame(() => {
+      setPageReady(true);
+    });
+    return () => cancelAnimationFrame(t);
+  }, []);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 40);
+      setScrollY(window.scrollY);
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Load public landing data from SaaS
   useEffect(() => {
     let cancelled = false;
     async function loadLanding() {
@@ -37,30 +93,22 @@ export function LandingPage() {
           apiService.getPublicLandingImages().catch(() => null),
         ]);
         if (cancelled) return;
-        const config = extractData(configRes) || {};
-        const images = extractData(imagesRes) || [];
-        setLandingConfig(config);
-        setLandingImages(images);
-        setLandingLoaded(true);
+        setLandingConfig(extractData(configRes) || {});
+        setLandingImages(extractData(imagesRes) || []);
       } catch {
-        // Silently fail: use default assets
-        setLandingLoaded(true);
+        // use defaults
       }
     }
     loadLanding();
     return () => { cancelled = true; };
   }, []);
 
-  // Helper to get config value by section/key
   const getConfig = (section: string, key: string, fallback: string) => {
     const sec = landingConfig[section];
-    if (sec && typeof sec === 'object' && key in sec) {
-      return sec[key];
-    }
+    if (sec && typeof sec === 'object' && key in sec) return sec[key];
     return fallback;
   };
 
-  // Helper to get image by type
   const getImage = (type: string, fallback: string) => {
     const img = landingImages.find((i) => i.type === type && i.active);
     return img?.url || fallback;
@@ -71,6 +119,8 @@ export function LandingPage() {
     const el = document.querySelector(href);
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const heroOverlayOpacity = Math.min(scrollY / 500, 0.85);
 
   const features = [
     { icon: '📐', title: 'Cotización Inteligente', desc: 'Wizard de 5 pasos con cálculo automático de áreas y precios en tiempo real.' },
@@ -97,8 +147,35 @@ export function LandingPage() {
     { id: 6, size: 120, top: '15%', right: '20%', delay: '2.5s', duration: '7s', opacity: 0.11 },
   ];
 
+  const services = [
+    { n: '01', t: 'Diseño Arquitectónico', d: 'Planos arquitectónicos completos con normativa local.' },
+    { n: '02', t: 'Diseño Estructural', d: 'Cálculo de estructuras, cimentación y mampostería.' },
+    { n: '03', t: 'Instalaciones Hidrosanitarias', d: 'Redes de agua, desagüe y sistemas sanitarios.' },
+    { n: '04', t: 'Diseño Eléctrico', d: 'Planos eléctricos, iluminación y tableros.' },
+    { n: '05', t: 'Renders 3D', d: 'Visualización fotorealista de tu proyecto.' },
+    { n: '06', t: 'Recorrido 3D', d: 'Tour virtual interactivo para tus clientes.' },
+    { n: '07', t: 'Presupuesto', d: 'Desglose detallado de costos de construcción.' },
+    { n: '08', t: 'Licencias', d: 'Trámites de licencias de construcción.' },
+  ];
+
+  const statsReveal = useStaggerReveal<HTMLDivElement>();
+  const featuresTitleReveal = useScrollReveal<HTMLDivElement>();
+  const featuresListReveal = useStaggerReveal<HTMLDivElement>();
+  const featuresImageReveal = useScrollReveal<HTMLDivElement>();
+  const servicesTitleReveal = useScrollReveal<HTMLDivElement>();
+  const servicesGridReveal = useStaggerReveal<HTMLDivElement>();
+  const ctaReveal = useScrollReveal<HTMLDivElement>();
+  const footerReveal = useScrollReveal<HTMLElement>();
+
   return (
-    <div className="animated-bg" style={{ minHeight: '100vh' }}>
+    <div
+      className="animated-bg"
+      style={{
+        minHeight: '100vh',
+        opacity: pageReady ? 1 : 0,
+        transition: 'opacity 0.6s ease-out',
+      }}
+    >
       {/* Navbar */}
       <nav className={`landing-nav ${scrolled ? 'scrolled' : ''}`}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -109,25 +186,18 @@ export function LandingPage() {
             onClick={() => scrollTo('#hero')}
           />
 
-          {/* Desktop links */}
           <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
             {navLinks.map((link) => (
               <span key={link.href} className="landing-nav-link" onClick={() => scrollTo(link.href)}>
                 {link.label}
               </span>
             ))}
-            <button className="btn btn-small" onClick={() => navigate('/login')} style={{ width: 'auto', padding: '10px 24px' }}>
-              Ingresar
+            <button className="btn btn-small" onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')} style={{ width: 'auto', padding: '10px 24px' }}>
+              {isAuthenticated ? 'Dashboard →' : 'Ingresar'}
             </button>
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            className="hamburger"
-            onClick={() => setMenuOpen(!menuOpen)}
-            style={{ display: 'none' }}
-            aria-label="Menú"
-          >
+          <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)} style={{ display: 'none' }} aria-label="Menú">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
               <span className="hamburger-line" style={{ transform: menuOpen ? 'rotate(45deg) translateY(3.5px)' : undefined }} />
               <span className="hamburger-line" style={{ opacity: menuOpen ? 0 : 1, width: 14 }} />
@@ -136,66 +206,33 @@ export function LandingPage() {
           </button>
         </div>
 
-        {/* Mobile menu */}
         {menuOpen && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 'calc(100% + 8px)',
-              right: 24,
-              background: 'rgba(15,15,15,0.98)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 20,
-              padding: 16,
-              minWidth: 200,
-              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-            }}
-          >
+          <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 24, background: 'rgba(15,15,15,0.98)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: 16, minWidth: 200, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {navLinks.map((link) => (
-              <span
-                key={link.href}
-                style={{ padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontSize: 15, color: '#fff' }}
-                onClick={() => scrollTo(link.href)}
-              >
+              <span key={link.href} style={{ padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontSize: 15, color: '#fff' }} onClick={() => scrollTo(link.href)}>
                 {link.label}
               </span>
             ))}
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', margin: '8px 0' }} />
-            <button className="btn" onClick={() => navigate('/login')}>
-              Ingresar
+            <button className="btn" onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}>
+              {isAuthenticated ? 'Ir al Dashboard' : 'Ingresar'}
             </button>
           </div>
         )}
       </nav>
 
-      {/* Hero */}
+      {/* Hero with dynamic scroll overlay */}
       <section id="hero" className="hero-section" style={{ padding: '0 24px' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${getImage('hero_bg', casaImage)})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.12 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,10,0.75) 0%, rgba(10,10,10,0.92) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${getImage('hero_bg', casaImage)})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 1 }} />
+        <div style={{ position: 'absolute', inset: 0, background: `rgba(10,10,10,${heroOverlayOpacity})`, transition: 'background 0.1s linear', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,10,0.3) 0%, rgba(10,10,10,0.6) 50%, rgba(10,10,10,0.85) 100%)', pointerEvents: 'none' }} />
 
         {particles.map((p) => (
-          <div
-            key={p.id}
-            style={{
-              position: 'absolute',
-              top: p.top, left: p.left, right: p.right, bottom: p.bottom,
-              width: p.size, height: p.size,
-              background: `radial-gradient(circle, rgba(182,148,98,${p.opacity}) 0%, transparent 70%)`,
-              borderRadius: '50%', pointerEvents: 'none',
-              animation: `floatParticle ${p.duration} ease-in-out ${p.delay} infinite`,
-            }}
-          />
+          <div key={p.id} style={{ position: 'absolute', top: p.top, left: p.left, right: p.right, bottom: p.bottom, width: p.size, height: p.size, background: `radial-gradient(circle, rgba(182,148,98,${p.opacity}) 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none', animation: `floatParticle ${p.duration} ease-in-out ${p.delay} infinite` }} />
         ))}
 
         <div style={{ position: 'relative', zIndex: 1 }} className="animate-reveal-up">
-          <img
-            src={getImage('logo_main', logoGold)}
-            alt="ELEMENThaus"
-            style={{ width: 'clamp(220px, 32vw, 380px)', height: 'auto', filter: 'drop-shadow(0 0 30px rgba(182, 148, 98, 0.3))' }}
-          />
+          <img src={getImage('logo_main', logoGold)} alt="ELEMENThaus" style={{ width: 'clamp(220px, 32vw, 380px)', height: 'auto', filter: 'drop-shadow(0 0 30px rgba(182, 148, 98, 0.3))' }} />
         </div>
 
         <h1 className="hero-title animate-slide-up" style={{ marginTop: 24 }}>
@@ -207,18 +244,15 @@ export function LandingPage() {
         </p>
 
         <div className="animate-reveal-up delay-3" style={{ display: 'flex', gap: 16, marginTop: 40, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button className="btn" style={{ width: 'auto', padding: '16px 40px', fontSize: 18 }} onClick={() => navigate('/login')}>
-            Comenzar Ahora →
+          <button className="btn" style={{ width: 'auto', padding: '16px 40px', fontSize: 18 }} onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}>
+            {isAuthenticated ? 'Ir al Dashboard →' : 'Comenzar Ahora →'}
           </button>
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '16px 40px', fontSize: 18 }} onClick={() => scrollTo('#features')}>
             Conocer Más
           </button>
         </div>
 
-        <div
-          style={{ position: 'absolute', bottom: 40, opacity: 0.5, animation: 'bounceArrow 2s ease-in-out infinite', zIndex: 1 }}
-          className="animate-reveal-up delay-5"
-        >
+        <div style={{ position: 'absolute', bottom: 40, opacity: 0.5, animation: 'bounceArrow 2s ease-in-out infinite', zIndex: 1 }} className="animate-reveal-up delay-5">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 5v14M5 12l7 7 7-7"/>
           </svg>
@@ -227,9 +261,9 @@ export function LandingPage() {
 
       {/* Stats */}
       <section style={{ padding: '80px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <div className="grid-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <div ref={statsReveal.ref} className={`grid-2 stagger-children ${statsReveal.visible ? 'visible' : ''}`} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           {stats.map((stat, i) => (
-            <div key={i} className="stat-card animate-reveal-up" style={{ animationDelay: `${i * 0.1}s` }}>
+            <div key={i} className="stat-card scroll-reveal-up">
               <div className="stat-number">{stat.value}</div>
               <p className="small" style={{ marginTop: 8 }}>{stat.label}</p>
             </div>
@@ -239,17 +273,8 @@ export function LandingPage() {
 
       {/* Features */}
       <section id="features" style={{ padding: '80px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 60 }} className="animate-reveal-up">
-          <h2
-            style={{
-              fontSize: 'clamp(2rem, 5vw, 3rem)',
-              fontWeight: 700,
-              marginBottom: 16,
-              background: 'linear-gradient(135deg, #ffffff, #b69462)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
+        <div ref={featuresTitleReveal.ref} style={{ textAlign: 'center', marginBottom: 60 }} className={`scroll-reveal-up ${featuresTitleReveal.visible ? 'visible' : ''}`}>
+          <h2 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 700, marginBottom: 16, background: 'linear-gradient(135deg, #ffffff, #b69462)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Todo lo que necesitas
           </h2>
           <p style={{ color: '#999', fontSize: 18, lineHeight: 1.6, maxWidth: 600, margin: '0 auto' }}>
@@ -258,21 +283,10 @@ export function LandingPage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 40, alignItems: 'center' }}>
-          <div style={{ display: 'grid', gap: 20 }}>
+          <div ref={featuresListReveal.ref} className={`stagger-children ${featuresListReveal.visible ? 'visible' : ''}`} style={{ display: 'grid', gap: 20 }}>
             {features.map((feature, i) => (
-              <div
-                key={i}
-                className="animate-slide-right"
-                style={{ animationDelay: `${i * 0.1}s`, display: 'flex', gap: 16, alignItems: 'flex-start' }}
-              >
-                <div style={{
-                  fontSize: 28,
-                  background: 'rgba(182, 148, 98, 0.1)',
-                  padding: '12px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(182, 148, 98, 0.2)',
-                  flexShrink: 0,
-                }}>
+              <div key={i} className="scroll-reveal-right" style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                <div style={{ fontSize: 28, background: 'rgba(182, 148, 98, 0.1)', padding: '12px', borderRadius: 12, border: '1px solid rgba(182, 148, 98, 0.2)', flexShrink: 0 }}>
                   {feature.icon}
                 </div>
                 <div>
@@ -283,41 +297,23 @@ export function LandingPage() {
             ))}
           </div>
 
-          <div className="animate-reveal-scale delay-4">
-            <img
-              src={casaImage}
-              alt="Casa moderna"
-              style={{ width: '100%', borderRadius: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', border: '1px solid rgba(182, 148, 98, 0.2)' }}
-            />
+          <div ref={featuresImageReveal.ref} className={`scroll-reveal-scale ${featuresImageReveal.visible ? 'visible' : ''}`}>
+            <img src={casaImage} alt="Casa moderna" loading="lazy" style={{ width: '100%', borderRadius: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', border: '1px solid rgba(182, 148, 98, 0.2)' }} />
           </div>
         </div>
       </section>
 
-      {/* Services Grid */}
+      {/* Services */}
       <section id="services" style={{ padding: '80px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }} className="animate-reveal-up">
-          <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 700, marginBottom: 12 }}>
-            Servicios Disponibles
-          </h2>
-          <p className="small" style={{ fontSize: 16 }}>Cada uno calculado al precio por m² de tu proyecto</p>
+        <div ref={servicesTitleReveal.ref} style={{ textAlign: 'center', marginBottom: 48 }} className={`scroll-reveal-up ${servicesTitleReveal.visible ? 'visible' : ''}`}>
+          <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 700, marginBottom: 12 }}>Servicios Disponibles</h2>
+          <p className="small" style={{ fontSize: 16, marginBottom: 8 }}>Cada uno calculado al precio por m² de tu proyecto</p>
+          <p className="small" style={{ color: '#b69462', fontSize: 14 }}>También puedes crear tus propios servicios personalizados desde el panel de configuración.</p>
         </div>
 
-        <div className="grid-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-          {[
-            { n: '01', t: 'Diseño Arquitectónico', d: 'Planos arquitectónicos completos con normativa local.' },
-            { n: '02', t: 'Diseño Estructural', d: 'Cálculo de estructuras, cimentación y mampostería.' },
-            { n: '03', t: 'Instalaciones Hidrosanitarias', d: 'Redes de agua, desagüe y sistemas sanitarios.' },
-            { n: '04', t: 'Diseño Eléctrico', d: 'Planos eléctricos, iluminación y tableros.' },
-            { n: '05', t: 'Renders 3D', d: 'Visualización fotorealista de tu proyecto.' },
-            { n: '06', t: 'Recorrido 3D', d: 'Tour virtual interactivo para tus clientes.' },
-            { n: '07', t: 'Presupuesto', d: 'Desglose detallado de costos de construcción.' },
-            { n: '08', t: 'Licencias', d: 'Trámites de licencias de construcción.' },
-          ].map((s, i) => (
-            <div
-              key={i}
-              className="card animate-reveal-up"
-              style={{ animationDelay: `${i * 0.06}s`, padding: 28 }}
-            >
+        <div ref={servicesGridReveal.ref} className={`grid-2 stagger-children ${servicesGridReveal.visible ? 'visible' : ''}`} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+          {services.map((s, i) => (
+            <div key={i} className="card scroll-reveal-up" style={{ padding: 28 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-accent)', letterSpacing: 1 }}>{s.n}</span>
               <h4 style={{ fontSize: 18, fontWeight: 600, margin: '12px 0 8px' }}>{s.t}</h4>
               <p className="small" style={{ lineHeight: 1.6 }}>{s.d}</p>
@@ -331,26 +327,22 @@ export function LandingPage() {
         <div style={{ position: 'absolute', top: '20%', left: '10%', width: 200, height: 200, background: 'radial-gradient(circle, rgba(182,148,98,0.06) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none', animation: 'floatParticle 10s ease-in-out infinite' }} />
         <div style={{ position: 'absolute', bottom: '20%', right: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(182,148,98,0.05) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none', animation: 'floatParticle 8s ease-in-out 2s infinite' }} />
 
-        <div className="card-hero animate-reveal-scale" style={{ maxWidth: 800, margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
+        <div ref={ctaReveal.ref} className={`card-hero scroll-reveal-scale ${ctaReveal.visible ? 'visible' : ''}`} style={{ maxWidth: 800, margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${getImage('cta_bg', casa2Image)})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.05 }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <img src={logoWhite} alt="ELEMENThaus" style={{ width: 80, height: 'auto', marginBottom: 24, opacity: 0.9 }} />
-            <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, marginBottom: 16 }}>
-              ¿Listo para profesionalizar tus cotizaciones?
-            </h2>
-            <p style={{ color: '#999', marginBottom: 32, fontSize: 18 }}>
-              Únete a los estudios de arquitectura que ya confían en ELEMENT
-            </p>
-            <button className="btn" style={{ width: 'auto', padding: '18px 48px', fontSize: 18 }} onClick={() => navigate('/login')}>
-              Empezar Gratis →
+            <img src={logoWhite} alt="ELEMENThaus" loading="lazy" style={{ width: 80, height: 'auto', marginBottom: 24, opacity: 0.9 }} />
+            <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, marginBottom: 16 }}>¿Listo para profesionalizar tus cotizaciones?</h2>
+            <p style={{ color: '#999', marginBottom: 32, fontSize: 18 }}>Únete a los estudios de arquitectura que ya confían en ELEMENT</p>
+            <button className="btn" style={{ width: 'auto', padding: '18px 48px', fontSize: 18 }} onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}>
+              {isAuthenticated ? 'Ir al Dashboard →' : 'Empezar Gratis →'}
             </button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ padding: '48px 24px', textAlign: 'center', borderTop: '1px solid var(--color-line)' }}>
-        <img src={getImage('logo_white', logoWhite)} alt="ELEMENThaus" style={{ width: 60, height: 'auto', marginBottom: 16, opacity: 0.8 }} />
+      <footer ref={footerReveal.ref} style={{ padding: '48px 24px', textAlign: 'center', borderTop: '1px solid var(--color-line)' }} className={`scroll-reveal-fade ${footerReveal.visible ? 'visible' : ''}`}>
+        <img src={getImage('logo_white', logoWhite)} alt="ELEMENThaus" loading="lazy" style={{ width: 60, height: 'auto', marginBottom: 16, opacity: 0.8 }} />
         <p className="small">{getConfig('footer', 'company_name', 'ELEMENThaus - Estudio de Diseño & Construcción')} © 2026</p>
         <p className="small" style={{ marginTop: 4 }}>{getConfig('footer', 'tagline', 'Cotizador Profesional · Todos los derechos reservados')}</p>
       </footer>

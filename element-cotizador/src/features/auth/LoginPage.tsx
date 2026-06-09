@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore, NotificationContainer } from '../../shared/hooks/useNotifications';
 import { useStore } from '../../shared/services/store';
 import logoAbbreviated from '../../assets/LOGO ABREVIADO/ELEMENThaus - Logo Abreviado White.png';
@@ -8,7 +8,14 @@ export function LoginPage() {
   const navigate = useNavigate();
   const showNotification = useAppStore((s) => s.showNotification);
   const login = useStore((s) => s.login);
-  const loadFromBackend = useStore((s) => s.loadFromBackend);
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,10 +29,28 @@ export function LoginPage() {
     try {
       const { apiService, SHOP_SLUG } = await import('../../shared/services/api');
       const res = await apiService.login({ email: email.trim(), password: password.trim(), shop_slug: SHOP_SLUG });
-      const token = res.token || (res.data && res.data.token);
+      let token = res.token || (res.data && res.data.token);
       if (!token) {
         throw new Error('El servidor no devolvió un token de sesión');
       }
+
+      // Check if token is pending (no shop_id) and resolve it
+      let selectRes: any = null;
+      if (apiService.isTokenPending(token)) {
+        console.log('[LOGIN] Token is pending, resolving shop...');
+        // Save temp token to localStorage so api() can read it for selectShop
+        const tempUser = apiService.buildUserFromToken(token);
+        if (tempUser) {
+          localStorage.setItem('element_user', JSON.stringify(tempUser));
+        }
+        selectRes = await apiService.selectShop({ shop_slug: SHOP_SLUG });
+        const newToken = selectRes.token || (selectRes.data && selectRes.data.token);
+        if (newToken) {
+          token = newToken;
+          console.log('[LOGIN] Shop resolved, new token received');
+        }
+      }
+
       let user = apiService.buildUserFromToken(token);
       if (!user) {
         throw new Error('No se pudieron leer los datos del usuario desde el token');
@@ -33,6 +58,10 @@ export function LoginPage() {
       // Fallback: if token has no name, try response body in every possible shape
       if (!user.name || user.name === 'Usuario') {
         const bodyName =
+          selectRes?.user?.name ||
+          selectRes?.customer?.name ||
+          selectRes?.data?.user?.name ||
+          selectRes?.data?.customer?.name ||
           res.name ||
           res.customer_name ||
           res.user?.name ||
@@ -45,9 +74,20 @@ export function LoginPage() {
           user = { ...user, name: bodyName };
         }
       }
+      // Extract profession from response if available
+      const bodyProfession =
+        selectRes?.user?.profession ||
+        selectRes?.customer?.profession ||
+        selectRes?.data?.user?.profession ||
+        selectRes?.data?.customer?.profession ||
+        res.user?.profession ||
+        res.customer?.profession ||
+        res.data?.user?.profession ||
+        res.data?.customer?.profession;
+      if (bodyProfession) {
+        user = { ...user, profession: bodyProfession };
+      }
       login(user);
-      // Cargar datos del SaaS
-      loadFromBackend().catch(() => {});
       showNotification(`¡Bienvenido a ELEMENT, ${user.name}!`, 'success');
       navigate('/dashboard');
     } catch (err: any) {

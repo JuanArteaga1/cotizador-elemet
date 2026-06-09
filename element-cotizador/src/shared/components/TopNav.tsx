@@ -30,6 +30,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 
   return (
     <header
+      className="no-print"
       style={{
         position: 'sticky',
         top: 0,
@@ -60,7 +61,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
             gap: 16,
             cursor: 'pointer',
           }}
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/')}
         >
           <img
             src={logoAbbreviated}
@@ -110,7 +111,10 @@ export function TopNav({ onMenuClick }: TopNavProps) {
           {location.pathname === '/quote' && 'Nueva Cotización'}
           {location.pathname === '/history' && 'Historial'}
           {location.pathname.startsWith('/invoice') && 'Cuenta de Cobro'}
-          {location.pathname === '/settings' && 'Ajustes'}
+          {location.pathname === '/tarifas' && 'Tarifas'}
+          {location.pathname === '/pagos' && 'Plan de Pagos'}
+          {location.pathname === '/cuenta-cobro' && 'Cuenta de Cobro'}
+          {location.pathname === '/estimacion' && 'Estimación de Obra'}
         </div>
 
         {/* Right: Hamburger + User */}

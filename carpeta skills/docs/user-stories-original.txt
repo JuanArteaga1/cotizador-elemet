@@ -1,0 +1,678 @@
+████████████████████████████████████████████████████████████████████████████████
+██                                                                          ██
+██                    ████████  ███████  ███    ███ ███████ ███    ██       ██
+██                       ██    ██   ██  ████  ████ ██      ████   ██       ██
+██                       ██    ███████  ██ ████ ██ █████   ██ ██  ██       ██
+██                       ██    ██   ██  ██  ██  ██ ██      ██  ██ ██       ██
+██                       ██    ██   ██  ██      ██ ███████ ██   ████       ██
+██                                                                          ██
+██                      ╔══════════════════════════════╗                    ██
+██                      ║  C O T I Z A D O R           ║                    ██
+██                      ║  P R O F E S I O N A L       ║                    ██
+██                      ╚══════════════════════════════╝                    ██
+██                                                                          ██
+██                                                                          ██
+██                      ┌──────────────────────────┐                       ██
+██                      │   HISTORIAS DE USUARIO   │                       ██
+██                      └──────────────────────────┘                       ██
+██                                                                          ██
+██                                                                          ██
+██                  Sistema de Cotización Profesional                       ██
+██               para el sector construcción y arquitectura                 ██
+██                                                                          ██
+██                                                                          ██
+██           ───────────────────────────────────────────────────            ██
+██           Versión:       1.0                                            ██
+██           Fecha:         Junio 2026                                     ██
+██           Tipo:          Documento de Requisitos                        ██
+██           Método:        Análisis de aplicación legacy                  ██
+██           ───────────────────────────────────────────────────            ██
+██                                                                          ██
+██                                                                          ██
+████████████████████████████████████████████████████████████████████████████████
+████████████████████████████████████████████████████████████████████████████████
+██                                                                          ██
+██   ELEMENT Cotizador es una aplicación profesional para la gestión       ██
+██   de cotizaciones y cuentas de cobro del sector construcción.           ██
+██                                                                          ██
+██   Desarrollado inicialmente como SPA en HTML5/CSS3/JS vanilla,          ██
+██   cuenta con un wizard de 5 pasos para cotizar proyectos                ██
+██   arquitectónicos, plan de pagos fraccionado, generación de             ██
+██   cuentas de cobro profesionales y capacidades PWA.                    ██
+██                                                                          ██
+██   Este documento recoge 34 historias de usuario extraídas               ██
+██   directamente del análisis del código fuente (2,769 líneas).           ██
+██                                                                          ██
+██   Público objetivo: Constructoras, Arquitectos e Ingenieros             ██
+██   en Colombia.                                                          ██
+██                                                                          ██
+██   Mercado: COP | Idioma: Español | Mobile-first (430px)                 ██
+██                                                                          ██
+████████████████████████████████████████████████████████████████████████████████
+████████████████████████████████████████████████████████████████████████████████
+
+================================================================================
+  TABLA DE CONTENIDO
+================================================================================
+
+  MÓDULO: AUTENTICACIÓN .................................. US-01 a US-02
+  MÓDULO: REGISTRO DE USUARIO ........................... US-38 a US-40
+  MÓDULO: DASHBOARD / NAVEGACIÓN ........................ US-03 a US-04
+  MÓDULO: COTIZACIÓN - WIZARD 5 PASOS .................. US-05 a US-09
+  MÓDULO: HISTORIAL DE COTIZACIONES .................... US-10 a US-15
+  MÓDULO: CUENTA DE COBRO / FACTURACIÓN ................ US-16 a US-19
+  MÓDULO: AJUSTES - TARIFAS ............................ US-20 a US-22
+  MÓDULO: AJUSTES - PLAN DE PAGOS ...................... US-23 a US-25
+  MÓDULO: AJUSTES - CUENTA DE COBRO .................... US-26 a US-29
+  MÓDULO: PERSISTENCIA Y DATOS DE DEMO ................. US-30 a US-31
+  MÓDULO: PWA ........................................... US-32
+  MÓDULO: NOTIFICACIONES Y CONFIRMACIONES .............. US-33 a US-34
+  MÓDULO: ESTIMACIÓN DE OBRA ............................ US-35 a US-36
+  MÓDULO: EDICIÓN PROFESIONAL DE PRECIOS ................ US-37
+  MÓDULO: BACKEND Y API REST ............................ US-41 a US-44
+  MÓDULO: DISEÑO PREMIUM Y NAVEGACIÓN ................... US-45 a US-47
+
+
+MÓDULO: BACKEND Y API REST
+----------------------------
+
+US-41 | Backend Node.js + Express
+  Como: desarrollador
+  Quiero: un backend robusto con API REST
+  Para: persistir datos de usuarios, cotizaciones y configuración en base de datos
+  Criterios:
+    - Stack: Node.js + Express + JavaScript + Prisma ORM + SQLite/PostgreSQL
+    - Arquitectura en capas: routes, middleware, lib, utils
+    - CORS habilitado para comunicación con frontend
+    - Variables de entorno configurables (.env)
+    - Servidor escucha en puerto configurable (por defecto 3001)
+
+US-42 | API de autenticación con JWT
+  Como: usuario
+  Quiero: registrarme e iniciar sesión de forma segura
+  Para: que mis datos estén protegidos y solo yo pueda acceder a ellos
+  Criterios:
+    - POST /api/auth/register - crea usuario con bcrypt
+    - POST /api/auth/login - valida credenciales y retorna JWT
+    - GET /api/auth/me - obtiene datos del usuario autenticado
+    - Passwords hasheados con bcrypt (10 rounds)
+    - Tokens JWT con expiración de 7 días
+    - Respuestas JSON estandarizadas con { user, token }
+
+US-43 | API de cotizaciones y configuración (aislamiento por usuario)
+  Como: usuario
+  Quiero: que mis cotizaciones y configuraciones sean privadas
+  Para: que ningún otro usuario pueda ver o modificar mis datos
+  Criterios:
+    - Todas las rutas de quotes y config requieren autenticación JWT
+    - GET /api/quotes - lista solo cotizaciones del usuario autenticado
+    - POST /api/quotes - crea cotización asociada al usuario
+    - PUT /api/quotes/:id - actualiza solo si pertenece al usuario
+    - DELETE /api/quotes/:id - elimina solo si pertenece al usuario
+    - GET /api/config - obtiene configuración del usuario (o crea default)
+    - PUT /api/config - actualiza configuración del usuario
+    - Campos JSON almacenados como string en la base de datos
+    - Middleware authMiddleware verifica JWT en cada petición protegida
+
+US-44 | Sincronización frontend-backend
+  Como: usuario
+  Quiero: que mis datos se guarden automáticamente en el servidor
+  Para: no perder información si cambio de dispositivo o borro el navegador
+  Criterios:
+    - Al iniciar sesión: se cargan quotes y config desde el backend
+    - Al crear/editar/eliminar quote: se sincroniza con backend
+    - Al actualizar config: se sincroniza con backend
+    - API service centralizado en frontend (api.ts)
+    - Token JWT enviado en header Authorization Bearer
+    - Fallback a datos locales si el backend no responde
+
+
+================================================================================
+  TOTAL: 44 Historias de Usuario
+================================================================================
+
+================================================================================
+  ELEMENT - COTIZADOR PROFESIONAL
+  Historias de Usuario
+================================================================================
+  Extraídas del análisis completo de ELEMENT-COTIZADOR.html (2,769 líneas)
+================================================================================
+
+MÓDULO: AUTENTICACIÓN
+---------------------
+
+US-01 | Ingreso a la aplicación
+  Como: usuario de la constructora
+  Quiero: ingresar con usuario y contraseña
+  Para: acceder al sistema de cotización
+  Criterios:
+    - Pantalla con campos de usuario y contraseña
+    - Botón "INGRESAR" que navega al dashboard
+    - Diseño con logo ELEMENT y título "Cotizador Profesional"
+
+US-02 | Pantalla de bienvenida personalizada
+  Como: usuario autenticado
+  Quiero: ver un saludo personalizado con mi nombre real
+  Para: sentir que la app está configurada para mí
+  Criterios:
+    - Muestra "Hola {nombre}" en el dashboard
+    - Muestra el rol profesional (Arquitecto / Maestro)
+    - TopNav muestra el nombre del usuario autenticado
+    - Menú desplegable con opción de cerrar sesión
+
+
+MÓDULO: REGISTRO DE USUARIO
+----------------------------
+
+US-38 | Crear cuenta de usuario
+  Como: nuevo usuario (arquitecto o maestro)
+  Quiero: registrarme en el sistema con mis datos personales
+  Para: tener mi propio perfil y acceder a la aplicación
+  Criterios:
+    - Pantalla de registro accesible desde login ("Regístrate")
+    - Campos requeridos: nombre completo, correo electrónico, usuario, contraseña, confirmar contraseña
+    - Selector de perfil profesional: Arquitecto / Maestro
+    - Validación: todos los campos obligatorios
+    - Validación: contraseña mínimo 6 caracteres
+    - Validación: contraseña y confirmación deben coincidir
+    - Diseño con logo ELEMENT y glassmorphism
+    - Botón "CREAR CUENTA"
+    - Enlace para volver al login
+
+US-39 | Cerrar sesión
+  Como: usuario autenticado
+  Quiero: cerrar mi sesión de forma segura
+  Para: proteger mi cuenta cuando termine de usar la app
+  Criterios:
+    - Menú desplegable en TopNav al hacer clic en el nombre de usuario
+    - Muestra: nombre, email, rol profesional
+    - Botón "Cerrar sesión" en rojo
+    - Al cerrar sesión: elimina datos de autenticación del localStorage
+    - Redirige automáticamente a la pantalla de login
+    - Las rutas protegidas requieren autenticación
+
+US-40 | Rutas protegidas
+  Como: usuario no autenticado
+  Quiero: ser redirigido al login si intento acceder a páginas internas
+  Para: proteger la información de los usuarios
+  Criterios:
+    - Dashboard, Cotización, Historial, Cuenta de Cobro, Ajustes requieren autenticación
+    - Si no hay sesión activa: redirección automática a /login
+    - Landing page y login son públicos
+    - El estado de autenticación persiste en localStorage
+
+
+MÓDULO: DASHBOARD / NAVEGACIÓN
+-------------------------------
+
+US-03 | Menú principal
+  Como: usuario
+  Quiero: un dashboard con acceso rápido a las funciones principales
+  Para: navegar fácilmente entre las secciones de la app
+  Criterios:
+    - Tarjeta "Nueva Cotización" que navega al wizard
+    - Tarjeta "Ajustes" que navega a configuración
+    - Barra de navegación inferior con 4 tabs: Inicio, Cotizar, Historial, Ajustes
+
+US-04 | Navegación por tabs inferior
+  Como: usuario
+  Quiero: una barra de navegación fija en la parte inferior
+  Para: cambiar entre secciones con una mano en mobile
+  Criterios:
+    - Barra fija en bottom con 4 íconos + etiquetas
+    - Tab activo resaltado con color acento
+    - Máximo 400px de ancho, centrada
+    - Presente en todas las pantallas principales
+    - Gestos de navegación atrás soportados (popstate)
+
+
+MÓDULO: COTIZACIÓN - WIZARD 5 PASOS
+-------------------------------------
+
+US-05 | Paso 1 - Datos del cliente
+  Como: usuario
+  Quiero: ingresar nombre del cliente y nombre del proyecto
+  Para: identificar cada cotización
+  Criterios:
+    - Campo "Nombre completo" (requerido)
+    - Campo "Proyecto" (requerido)
+    - Botón "CONTINUAR →"
+    - Validación: muestra advertencia si campos están vacíos
+    - Indicador de progreso: "Paso 1 de 5"
+
+US-06 | Paso 2 - Área del terreno
+  Como: usuario
+  Quiero: ingresar las dimensiones del terreno de dos formas posibles
+  Para: calcular el área de construcción
+  Criterios:
+    - Modo "Dimensiones": ingresar medidas de lote rectangular o irregular
+    - Modo "Área Directa": ingresar área del primer piso directamente
+    - Diagrama SVG interactivo con inputs embebidos para frontal, posterior, laterales
+    - Selector de forma del lote: Rectangular / Irregular
+    - Slider de índice de ocupación (50%-100%)
+    - Visualización en tiempo real: área del lote, área primer piso
+    - Soporte para forma irregular (frontal ≠ posterior, lateral izq ≠ lateral der)
+
+US-07 | Paso 3 - Volados y pisos múltiples
+  Como: usuario
+  Quiero: configurar el número de pisos y áreas de voladizo
+  Para: calcular el área total construida en edificios de varios pisos
+  Criterios:
+    - Selector de número de pisos (1-10)
+    - Si >1 piso: campo de tamaño de volado (metros)
+    - Checkboxes para seleccionar fachadas con volado: Frontal, Posterior, Lateral Izq, Lateral Der
+    - Cálculo automático: área de volado por piso, área total piso superior
+    - Visualización del área total estimada
+
+US-08 | Paso 4 - Servicios
+  Como: usuario
+  Quiero: seleccionar los servicios de diseño que incluiré en la cotización
+  Para: calcular el valor total del proyecto
+  Criterios:
+    - Opción "Paquete Completo Premium" (todo incluido, precio fijo por m²)
+    - Si NO es paquete completo: sub-paquetes disponibles
+    - Servicios individuales con precio por m²
+    - Al seleccionar sub-paquete "Instalaciones": ocultar servicios eléctrico e hidrosanitario
+    - Visualización del valor total en tiempo real
+    - Check marks visuales en servicios seleccionados
+    - Servicios disponibles: Diseño Arquitectónico, Estructural, Hidrosanitario,
+      Eléctrico, Renders 3D, Recorrido 3D, Presupuesto, Licencias
+
+US-09 | Paso 5 - Resumen y ajuste final
+  Como: usuario
+  Quiero: revisar el resumen de la cotización antes de guardarla
+  Para: aplicar descuentos, agregar servicios adicionales y ver el plan de pagos
+  Criterios:
+    - Datos del cliente y proyecto
+    - Sección de "Servicios Adicionales" con formulario inline
+    - Campos para agregar: nombre del servicio + valor
+    - Lista de servicios adicionales agregados con opción de eliminar
+    - Campo de descuento (ajuste de valor)
+    - Valor base, descuento y valor final mostrados
+    - Plan de pagos con desglose por cuota
+    - Botón "GUARDAR" que persiste la cotización
+
+
+MÓDULO: HISTORIAL DE COTIZACIONES
+----------------------------------
+
+US-10 | Ver historial
+  Como: usuario
+  Quiero: ver todas las cotizaciones guardadas
+  Para: consultar, editar o dar seguimiento a proyectos anteriores
+  Criterios:
+    - Lista de cotizaciones con: cliente, proyecto, área, precio, estado, fecha
+    - Indicador de estado: "Borrador" (gris) o "Finalizada" (verde)
+    - Conteo total de cotizaciones guardadas
+    - Mensaje vacío si no hay cotizaciones con botón "Crear Nueva"
+
+US-11 | Opciones de cotización
+  Como: usuario
+  Quiero: seleccionar una cotización del historial
+  Para: ver opciones disponibles (ver resumen, editar, generar cuenta de cobro)
+  Criterios:
+    - Modal con opciones al hacer clic en una cotización
+    - "Ver Resumen" - vista de solo lectura
+    - "Editar" - cargar datos en el wizard (solo si no está finalizada)
+    - "Generar Cuenta de Cobro" - crear factura
+    - "Marcar como Finalizada" - cambiar estado
+    - Botón "×" para eliminar directamente
+
+US-12 | Ver resumen de cotización
+  Como: usuario
+  Quiero: ver una vista detallada de solo lectura de la cotización
+  Para: revisar servicios, descuentos y plan de pagos sin poder editarlos
+  Criterios:
+    - Datos del cliente con estado
+    - Servicios incluidos (paquete completo, sub-paquetes, individuales)
+    - Servicios adicionales
+    - Valor base, descuento, valor final
+    - Plan de pagos desglosado
+
+US-13 | Editar cotización existente
+  Como: usuario
+  Quiero: modificar una cotización en estado borrador
+  Para: actualizar datos del cliente, área, servicios o valores
+  Criterios:
+    - Carga todos los datos en el wizard paso 5 (resumen)
+    - No permite editar cotizaciones finalizadas
+    - Muestra notificación si se intenta editar una finalizada
+
+US-14 | Eliminar cotización
+  Como: usuario
+  Quiero: eliminar una cotización del historial
+  Para: mantener limpio mi listado de proyectos
+  Criterios:
+    - Botón "×" en cada item del historial
+    - Modal de confirmación con mensaje claro
+    - Botón "Cancelar" y "Eliminar"
+    - Notificación de éxito al eliminar
+
+US-15 | Limpiar todo el historial
+  Como: usuario
+  Quiero: eliminar TODAS las cotizaciones de una vez
+  Para: reiniciar completamente el sistema
+  Criterios:
+    - Opción en pantalla de Ajustes
+    - Modal de confirmación con conteo de cotizaciones a eliminar
+    - Botón de peligro (rojo)
+    - Deshabilitado si no hay cotizaciones
+
+
+MÓDULO: CUENTA DE COBRO / FACTURACIÓN
+---------------------------------------
+
+US-16 | Generar cuenta de cobro
+  Como: usuario
+  Quiero: generar un documento formal de cuenta de cobro a partir de una cotización
+  Para: facturar al cliente
+  Criterios:
+    - Documento profesional con datos de la empresa
+    - Información del cliente
+    - Tabla de servicios con cantidades, valor unitario y valor total
+    - Descuento aplicado si existe
+    - Valor total en COP
+    - Plan de pagos desglosado
+    - Términos y condiciones
+    - Datos bancarios
+    - Firma del representante legal
+    - Nota al pie opcional
+    - Número consecutivo autoincremental
+
+US-17 | Compartir cuenta de cobro como imagen
+  Como: usuario
+  Quiero: capturar la cuenta de cobro como imagen PNG
+  Para: compartirla por WhatsApp, email u otras aplicaciones
+  Criterios:
+    - Captura con html2canvas a 2x de resolución
+    - Web Share API para compartir nativamente
+    - Si no soporta Web Share: descarga automática en Descargas
+    - Nombre de archivo: "Cuenta_Cobro_####_Cliente.png"
+    - Fallback a texto si html2canvas no está disponible
+
+US-18 | Compartir cuenta de cobro por WhatsApp
+  Como: usuario
+  Quiero: compartir la cuenta de cobro directamente a WhatsApp
+  Para: enviar rápidamente al cliente
+  Criterios:
+    - Botón "Compartir" que detecta si puede usar Web Share
+    - Si no: abre WhatsApp Web con texto preformateado
+    - Texto incluye: No. cuenta, empresa, cliente, proyecto, valor total
+
+US-19 | Imprimir / exportar PDF
+  Como: usuario
+  Quiero: imprimir la cuenta de cobro o guardarla como PDF
+  Para: tener una copia física o digital para archivo
+  Criterios:
+    - Botón "Imprimir / PDF"
+    - Estilos específicos para impresión (sin botones, márgenes optimizados)
+    - Saltos de página automáticos en secciones largas
+
+
+MÓDULO: AJUSTES - TARIFAS
+---------------------------
+
+US-20 | Ver tarifas configuradas
+  Como: usuario administrador
+  Quiero: ver la lista de servicios con sus precios
+  Para: conocer las tarifas actuales del sistema
+  Criterios:
+    - Lista de servicios con nombre, precio y unidad
+    - Servicios por defecto (8 servicios) no eliminables
+    - Servicios personalizados marcados como editables
+
+US-21 | Agregar nuevo servicio
+  Como: usuario administrador
+  Quiero: crear un nuevo servicio con precio personalizado
+  Para: ampliar la oferta de servicios de la empresa
+  Criterios:
+    - Formulario inline con: nombre, unidad (/m², /obra, /trabajo, /unidad, /imagen), valor
+    - Validación de campos obligatorios
+    - ID único generado automáticamente (custom_ + timestamp)
+    - Servicio guardado en configuración permanente
+
+US-22 | Eliminar servicio personalizado
+  Como: usuario administrador
+  Quiero: eliminar un servicio que yo mismo creé
+  Para: mantener actualizado el catálogo de servicios
+  Criterios:
+    - Solo permite eliminar servicios creados por el usuario (prefijo custom_)
+    - Modal de confirmación con nombre del servicio
+    - No permite eliminar servicios por defecto del sistema
+
+
+MÓDULO: AJUSTES - PLAN DE PAGOS
+----------------------------------
+
+US-23 | Configurar plan de pagos
+  Como: usuario administrador
+  Quiero: definir las cuotas del plan de pagos
+  Para: establecer cómo se fraccionará el pago de las cotizaciones
+  Criterios:
+    - Lista de pagos con nombre y porcentaje
+    - Cada pago editable inline
+    - Máximo 10 pagos permitidos
+    - Validación: suma total debe ser 100%
+    - Indicador visual: acento si suma=100%, rojo si no
+
+US-24 | Agregar nuevo pago
+  Como: usuario administrador
+  Quiero: agregar una nueva cuota al plan de pagos
+  Para: personalizar los plazos de pago
+  Criterios:
+    - Formulario inline: nombre + porcentaje (1-100)
+    - Validación de rango
+    - Límite máximo de 10 pagos
+
+US-25 | Eliminar pago
+  Como: usuario administrador
+  Quiero: eliminar una cuota del plan de pagos
+  Para: ajustar los plazos
+  Criterios:
+    - Botón "×" por cada pago
+    - Confirmación antes de eliminar
+
+
+MÓDULO: AJUSTES - CUENTA DE COBRO
+------------------------------------
+
+US-26 | Configurar datos de la empresa
+  Como: usuario administrador
+  Quiero: ingresar los datos de mi empresa (logo, nombre, NIT, dirección, etc.)
+  Para: que aparezcan en la cuenta de cobro
+  Criterios:
+    - Sección "Datos de la Empresa" con toggle activar/desactivar
+    - Campos: logo (carga de imagen), nombre, NIT, dirección, teléfono, email, sitio web
+    - Logo almacenado como base64 en localStorage
+    - Opción para eliminar logo
+
+US-27 | Configurar representante legal
+  Como: usuario administrador
+  Quiero: ingresar los datos del representante legal
+  Para: que aparezca su firma en la cuenta de cobro
+  Criterios:
+    - Sección "Representante Legal" con toggle activar/desactivar
+    - Campos: firma digital (carga de imagen), nombre, cargo, documento
+    - Firma almacenada como base64
+
+US-28 | Configurar datos bancarios
+  Como: usuario administrador
+  Quiero: ingresar los datos de la cuenta bancaria
+  Para: que el cliente sepa dónde hacer el pago
+  Criterios:
+    - Sección "Datos Bancarios" con toggle activar/desactivar
+    - Campos: banco, tipo de cuenta (Ahorros/Corriente), número de cuenta, titular
+
+US-29 | Configurar documento
+  Como: usuario administrador
+  Quiero: configurar el formato de la cuenta de cobro
+  Para: personalizar términos, nota al pie y numeración
+  Criterios:
+    - Número consecutivo actual (se incrementa automáticamente)
+    - Términos y condiciones (textarea multilinea)
+    - Nota al pie opcional
+
+
+MÓDULO: PERSISTENCIA Y DATOS DE DEMO
+--------------------------------------
+
+US-30 | Persistencia local
+  Como: usuario
+  Quiero: que mis cotizaciones y configuración se guarden automáticamente
+  Para: no perder datos al cerrar la aplicación
+  Criterios:
+    - Configuración guardada en localStorage ("config")
+    - Cotizaciones guardadas en localStorage ("quotes")
+    - Datos persisten entre sesiones
+
+US-31 | Datos de demostración
+  Como: nuevo usuario
+  Quiero: ver datos de ejemplo al abrir la app por primera vez
+  Para: entender cómo funciona el sistema antes de usarlo
+  Criterios:
+    - Servicios precargados con 8 servicios de arquitectura
+    - Plan de pagos con 4 cuotas (50%, 20%, 20%, 10%)
+    - Datos de empresa de ejemplo ("Constructora La SAYE")
+    - Representante legal de ejemplo ("Miguel Ángel Sarria")
+    - 2 cotizaciones de demostración
+
+
+MÓDULO: PWA (PROGRESSIVE WEB APP)
+-----------------------------------
+
+US-32 | Instalación como app
+  Como: usuario
+  Quiero: instalar ELEMENT en mi dispositivo móvil
+  Para: usarla como una app nativa sin depender del navegador
+  Criterios:
+    - Manifest.json con nombre, íconos, tema-color
+    - Service Worker para funcionamiento offline
+    - Meta tags para iOS (apple-touch-icon, status bar)
+    - No registra SW en modo file:// (solo HTTP/HTTPS)
+
+
+MÓDULO: NOTIFICACIONES Y CONFIRMACIONES
+-----------------------------------------
+
+US-33 | Notificaciones de acción
+  Como: usuario
+  Quiero: recibir retroalimentación visual de mis acciones
+  Para: saber si una operación fue exitosa o falló
+  Criterios:
+    - Notificaciones tipo toast con 3 variantes: success (verde), error (rojo), warning (naranja)
+    - Animación de entrada slide-down y salida fade-out
+    - Auto-destrucción después de 3 segundos
+    - Posición: superior centrada
+
+US-34 | Confirmación de acciones destructivas
+  Como: usuario
+  Quiero: confirmar antes de eliminar datos
+  Para: evitar pérdidas accidentales de información
+  Criterios:
+    - Modal con mensaje claro de lo que se va a eliminar
+    - Botón "Cancelar" para volver atrás
+    - Botón "Eliminar" en rojo para confirmar
+    - Overlay oscuro con clic fuera para cerrar
+
+
+MÓDULO: ESTIMACIÓN DE OBRA
+----------------------------
+
+US-35 | Realizar estimación de obra
+  Como: usuario
+  Quiero: calcular el costo aproximado de construcción a partir de una cotización guardada
+  Para: dar al cliente una idea del costo de ejecución de la obra
+  Criterios:
+    - Botón "Realizar Estimación" en el modal de opciones de cotización
+    - Modal de estimación con: cliente, proyecto, área total en m²
+    - Selector de tipo de acabado con 3 opciones:
+      * Obra Negra: estructura, muros sin acabados, instalaciones básicas
+      * Obra Gris: estructura + estuco + instalaciones, sin pintura ni pisos finales
+      * Acabados: obra terminada con pintura, pisos finales, baños, cocina, carpintería
+    - Precio por m² configurable para cada tipo de acabado
+    - Cálculo automático: área total × precio por m²
+    - Visualización clara del costo estimado total en COP
+    - Botón para cerrar el modal
+
+US-36 | Configurar precios de estimación
+  Como: usuario administrador
+  Quiero: definir los precios por m² para obra negra, obra gris y acabados terminados
+  Para: que las estimaciones reflejen los costos actuales de construcción
+  Criterios:
+    - Nueva pestaña "Estimación de Obra" en Ajustes
+    - Tres campos editables: Precio Obra Negra, Precio Obra Gris, Precio Acabados (por m²)
+    - Descripción de cada tipo de acabado
+    - Cambios persistidos en la configuración
+    - Valores por defecto razonables preconfigurados
+
+
+MÓDULO: EDICIÓN PROFESIONAL DE PRECIOS
+----------------------------------------
+
+US-37 | Editar precios de servicios con modal profesional
+  Como: usuario administrador
+  Quiero: editar los precios de los servicios en un modal bien diseñado
+  Para: tener una experiencia profesional y evitar errores al modificar valores
+  Criterios:
+    - Botón "Editar" en cada servicio de la lista de tarifas
+    - Modal con: nombre del servicio, unidad, campo de entrada numérica para el nuevo precio
+    - Símbolo "$" al lado del campo de precio
+    - Botones "Guardar" y "Cancelar"
+    - Validación: solo permite valores numéricos positivos
+    - Notificación de éxito al guardar
+    - El modal se cierra al guardar o cancelar
+    - El modal se cierra al hacer clic fuera o presionar Escape
+
+
+MÓDULO: DISEÑO PREMIUM Y NAVEGACIÓN
+------------------------------------
+
+US-45 | Landing Page premium con navbar funcional
+  Como: visitante
+  Quiero: una página de inicio elegante con navegación clara entre secciones
+  Para: entender el producto y acceder rápidamente a las funciones
+  Criterios:
+    - Navbar fijo con efecto glassmorphism al hacer scroll
+    - Links de navegación a secciones: Inicio, Funciones, Servicios, Contacto
+    - Animación de underline dorado al pasar el mouse sobre links
+    - Menú hamburguesa para móvil con overlay
+    - Secciones con animaciones escalonadas (reveal-up, slide-right, reveal-scale)
+    - Efectos de partículas flotantes doradas en el hero
+    - Grid de servicios numerados (01-08) con tarjetas estilo bento
+    - Jerarquía visual clara: gradientes dorados en títulos, opacidad en subtítulos
+
+US-46 | Menú lateral deslizante (Sidebar)
+  Como: usuario autenticado
+  Quiero: un menú lateral accesible desde un botón hamburguesa en el TopNav
+  Para: navegar entre las pantallas internas sin depender de un bottom nav
+  Criterios:
+    - Botón hamburguesa en TopNav que abre el sidebar
+    - Sidebar se desliza desde la izquierda con transición suave (cubic-bezier)
+    - Overlay oscuro con backdrop-filter que cierra al hacer clic fuera
+    - Items del menú: Inicio, Cotizar, Historial, Ajustes, Cerrar Sesión
+    - Item activo resaltado con fondo dorado sutil y borde dorado
+    - Cierre automático al seleccionar una opción
+    - Diseño glassmorphism oscuro con gradiente
+    - Previene scroll del body cuando está abierto
+
+US-47 | Estados reales de botones y microanimaciones accesibles
+  Como: usuario
+  Quiero: botones y elementos interactivos con feedback visual claro
+  Para: sentir que la interfaz responde a mis acciones
+  Criterios:
+    - Botón primario: efecto shine en hover, translateY(-2px), sombra dorada
+    - Botón primario: scale(0.97) en active con transición rápida
+    - Botón primario: focus-visible con outline dorado y offset
+    - Botón primario: disabled con opacity reducida y sin transformaciones
+    - Botón secondary/ghost/danger/success: mismos estados hover/active/focus
+    - Inputs: border dorado en hover, glow sutil en focus
+    - Tarjetas: translateY(-2px) y sombra en hover
+    - Items del historial: translateX(4px) en hover
+    - Range slider: scale(1.15) en el thumb al pasar el mouse
+    - Animaciones con cubic-bezier(0.16, 1, 0.3, 1) para suavidad
+    - Soporte para prefers-reduced-motion (deshabilita animaciones)
+
+
+================================================================================
+  TOTAL: 47 Historias de Usuario
+================================================================================
