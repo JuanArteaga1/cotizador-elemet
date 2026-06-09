@@ -17,7 +17,14 @@ export function Layout({ children }: LayoutProps) {
   // Load quotes and config from SaaS on mount if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      loadFromBackend();
+      // Small delay to ensure auth state + localStorage are fully propagated
+      const timer = setTimeout(() => {
+        const stored = localStorage.getItem('element_user');
+        if (stored) {
+          loadFromBackend();
+        }
+      }, 200);
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, loadFromBackend]);
 

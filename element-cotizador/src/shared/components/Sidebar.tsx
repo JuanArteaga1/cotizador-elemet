@@ -29,11 +29,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     };
   }, [open, onClose]);
 
-  const items = [
+  const mainItems = [
     { route: '/dashboard', icon: '🏠', label: 'Inicio' },
     { route: '/quote', icon: '📐', label: 'Cotizar' },
     { route: '/history', icon: '📂', label: 'Historial' },
-    { route: '/settings', icon: '⚙️', label: 'Ajustes' },
+  ];
+
+  const configItems = [
+    { route: '/tarifas', icon: '💰', label: 'Tarifas' },
+    { route: '/pagos', icon: '💳', label: 'Plan de Pagos' },
+    { route: '/cuenta-cobro', icon: '📋', label: 'Cuenta de Cobro' },
+    { route: '/estimacion', icon: '🏗️', label: 'Estimación de Obra' },
+  ];
+
+  const calculatorItems = [
+    { route: '/calculadoras/estimaciones', icon: '📐', label: 'Estimaciones' },
   ];
 
   const isActive = (route: string) => location.pathname === route;
@@ -46,23 +56,61 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       {/* Overlay */}
-      <div className={`sidebar-overlay ${open ? 'open' : ''}`} onClick={onClose} />
+      <div className={`sidebar-overlay no-print ${open ? 'open' : ''}`} onClick={onClose} />
 
       {/* Sidebar */}
-      <aside ref={sidebarRef} className={`sidebar ${open ? 'open' : ''}`}>
+      <aside ref={sidebarRef} className={`sidebar no-print ${open ? 'open' : ''}`}>
         {/* Logo header */}
         <div style={{ padding: '0 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, cursor: 'pointer' }}
+            onClick={() => { navigate('/'); onClose(); }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/')}
+          >
             <span style={{ fontSize: 22 }}>🏗️</span>
             <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>ELEMENT</span>
           </div>
           <p className="small" style={{ fontSize: 12, margin: 0 }}>Cotizador Profesional</p>
         </div>
 
-        {/* Nav items */}
+        {/* Main nav items */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}>
           <p className="small" style={{ padding: '12px 12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Menú Principal</p>
-          {items.map((item) => (
+          {mainItems.map((item) => (
+            <div
+              key={item.route}
+              className={`sidebar-item ${isActive(item.route) ? 'active' : ''}`}
+              onClick={() => handleNavigate(item.route)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && handleNavigate(item.route)}
+            >
+              <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+
+          {/* Config section */}
+          <p className="small" style={{ padding: '16px 12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8 }}>Configuración</p>
+          {configItems.map((item) => (
+            <div
+              key={item.route}
+              className={`sidebar-item ${isActive(item.route) ? 'active' : ''}`}
+              onClick={() => handleNavigate(item.route)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && handleNavigate(item.route)}
+            >
+              <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+
+          {/* Calculators section */}
+          <p className="small" style={{ padding: '16px 12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8 }}>Calculadoras</p>
+          {calculatorItems.map((item) => (
             <div
               key={item.route}
               className={`sidebar-item ${isActive(item.route) ? 'active' : ''}`}

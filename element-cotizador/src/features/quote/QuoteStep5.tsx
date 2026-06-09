@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../../shared/services/store';
 import type { AreaResult } from '../../shared/types';
 
@@ -8,12 +8,77 @@ interface QuoteStep5Props {
 }
 
 export function QuoteStep5({ area, price }: QuoteStep5Props) {
-  const { formData, config, setFormData } = useStore();
+  const { formData, config, setFormData, paymentPlans, loadPaymentPlans, editingQuoteId } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [newService, setNewService] = useState({ name: '', price: '' });
+  const [hasPayments, setHasPayments] = useState(false);
+
+  useEffect(() => {
+    loadPaymentPlans();
+  }, [loadPaymentPlans]);
+
+  // Check if editing quote already has payments
+  useEffect(() => {
+    if (editingQuoteId) {
+      const loadPayments = async () => {
+        try {
+          const { apiService, extractData } = await import('../../shared/services/api');
+          const res = await apiService.getQuotePayments(editingQuoteId);
+          const payments = extractData(res);
+          if (Array.isArray(payments) && payments.length > 0) {
+            const confirmed = payments.some((p: any) => p.status === 'confirmed' || p.status === 'approved');
+            setHasPayments(confirmed);
+          }
+        } catch {
+          // Silently fail
+        }
+      };
+      loadPayments();
+    } else {
+      setHasPayments(false);
+    }
+  }, [editingQuoteId]);
 
   const basePrice = price + (formData.discount || 0);
   const finalPrice = price;
+
+  // Determine selected plan ID: formData.paymentPlanId or undefined (manual)
+  const selectedPlanId = formData.paymentPlanId;
+
+  // Derive payment plan for THIS quote
+  const selectedPlan = selectedPlanId !== undefined
+    ? paymentPlans.find((p) => String(p.id) === String(selectedPlanId))
+    : undefined;
+  const planPayments = selectedPlan ? selectedPlan.installments : config.paymentPlan.payments;
+
+  // Debug
+  console.log('[QuoteStep5] plan:', { selectedPlanId, selectedPlanName: selectedPlan?.name, planPaymentsCount: planPayments.length, paymentPlansCount: paymentPlans.length });
+
+  const handleSelectPlan = (planId: number | undefined) => {
+    setFormData({ paymentPlanId: planId });
+  };
+
+  // Radio indicator component
+  const RadioIndicator = ({ checked }: { checked: boolean }) => (
+    <div
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: '50%',
+        border: checked ? '2px solid #b69462' : '2px solid rgba(255,255,255,0.3)',
+        background: checked ? '#b69462' : 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        transition: 'all 0.2s ease',
+      }}
+    >
+      {checked && (
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#000' }} />
+      )}
+    </div>
+  );
 
   const addAdditionalService = () => {
     if (!newService.name.trim() || !newService.price) return;
@@ -38,12 +103,112 @@ export function QuoteStep5({ area, price }: QuoteStep5Props) {
     });
   };
 
+  const isPlanSelected = (planId: number | undefined) => {
+    if (planId === undefined) return selectedPlanId === undefined;
+    return String(selectedPlanId) === String(planId);
+  };
+
   return (
     <>
       <div className="card mt-2">
         <h3 className="mb-1" style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>{formData.client}</h3>
         <p className="small">{formData.project}</p>
         <p className="small mt-1">Área: {area.total.toFixed(2)} m²</p>
+      </div>
+
+      {/* Plan de pagos */}
+      <div className="card">
+        <h3 className="mb-2" style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>📋 Plan de Pagos</h3>
+        {hasPayments ? (
+          <div style={{ padding: 12, background: 'rgba(255,193,7,0.1)', borderRadius: 8, marginBottom: 16, border: '1px solid rgba(255,193,7,0.3)' }}>
+            <p className="small" style={{ color: '#ffc107', fontWeight: 600 }}>
+              ⚠️ Esta cotización tiene pagos registrados. El plan de pagos no puede modificarse.
+            </p>
+          </div>
+        ) : (
+          <p className="small mb-2" style={{ color: '#999' }}>Elige uno de tus planes guardados o usa la configuración manual</p>
+        )}
+
+        {/* Opción: configuración manual actual */}
+        <div
+          onClick={() => !hasPayments && handleSelectPlan(undefined)}
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            border: isPlanSelected(undefined) ? '2px solid #b69462' : '1px solid rgba(255,255,255,0.1)',
+            background: isPlanSelected(undefined) ? 'rgba(182,148,98,0.08)' : 'rgba(255,255,255,0.03)',
+            cursor: hasPayments ? 'not-allowed' : 'pointer',
+            opacity: hasPayments ? 0.6 : 1,
+            marginBottom: 12,
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+          }}
+        >
+          <RadioIndicator checked={isPlanSelected(undefined)} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Configuración actual</div>
+            <div className="small" style={{ color: '#999' }}>
+              {config.paymentPlan.payments.length} cuotas definidas manualmente
+            </div>
+            {isPlanSelected(undefined) && (
+              <div style={{ marginTop: 8, fontSize: 12, color: '#b69462', fontWeight: 600 }}>✓ Seleccionado</div>
+            )}
+          </div>
+        </div>
+
+        {/* Planes guardados */}
+        {paymentPlans.length === 0 && (
+          <p className="small" style={{ color: '#666', textAlign: 'center', padding: 12 }}>
+            No tienes planes guardados. Crea uno en <strong>Configuración → Plan de Pagos</strong>.
+          </p>
+        )}
+
+        {paymentPlans.map((plan) => (
+          <div
+            key={plan.id}
+            onClick={() => !hasPayments && handleSelectPlan(plan.id)}
+            style={{
+              padding: 16,
+              borderRadius: 12,
+              border: isPlanSelected(plan.id) ? '2px solid #b69462' : '1px solid rgba(255,255,255,0.1)',
+              background: isPlanSelected(plan.id) ? 'rgba(182,148,98,0.08)' : 'rgba(255,255,255,0.03)',
+              cursor: hasPayments ? 'not-allowed' : 'pointer',
+              opacity: hasPayments ? 0.6 : 1,
+              marginBottom: 12,
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+            }}
+          >
+            <RadioIndicator checked={isPlanSelected(plan.id)} />
+            <div style={{ flex: 1 }}>
+              <div className="flex-between" style={{ marginBottom: 4 }}>
+                <div style={{ fontWeight: 600 }}>{plan.name}</div>
+                {plan.isDefault && (
+                  <span style={{ fontSize: 11, color: '#b69462', background: 'rgba(182,148,98,0.15)', padding: '2px 8px', borderRadius: 8 }}>
+                    Predeterminado
+                  </span>
+                )}
+              </div>
+              {plan.description && (
+                <div className="small" style={{ color: '#999', marginBottom: 8 }}>{plan.description}</div>
+              )}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {plan.installments.map((i) => (
+                  <span key={i.order} className="small" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: 8 }}>
+                    {i.name}: <strong>{i.percentage}%</strong>
+                  </span>
+                ))}
+              </div>
+              {isPlanSelected(plan.id) && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#b69462', fontWeight: 600 }}>✓ Seleccionado</div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="card">
@@ -125,11 +290,18 @@ export function QuoteStep5({ area, price }: QuoteStep5Props) {
           <p className="small mb-1">Descuento (ajuste de valor)</p>
           <input
             className="input"
-            type="number"
-            step={100}
-            value={formData.discount || 0}
-            onChange={(e) => setFormData({ discount: parseInt(e.target.value) || 0 })}
+            type="text"
+            inputMode="numeric"
             placeholder="0"
+            value={formData.discount === 0 ? '' : String(formData.discount || '')}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '') {
+                setFormData({ discount: 0 });
+              } else if (/^\d*$/.test(val)) {
+                setFormData({ discount: parseInt(val) || 0 });
+              }
+            }}
           />
           <p className="small mt-1" style={{ color: '#999' }}>
             Ej: 7800 para redondear valores
@@ -146,17 +318,30 @@ export function QuoteStep5({ area, price }: QuoteStep5Props) {
 
       <div className="card">
         <h3 className="mb-2" style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Plan de Pagos</h3>
+        {selectedPlan ? (
+          <p className="small mb-2" style={{ color: '#b69462' }}>
+            📋 Plan seleccionado: <strong>{selectedPlan.name}</strong> ({planPayments.length} cuotas)
+          </p>
+        ) : (
+          <p className="small mb-2" style={{ color: '#999' }}>
+            ⚙️ Usando configuración manual
+          </p>
+        )}
         <div style={{ display: 'grid', gap: 10 }}>
-          {config.paymentPlan.payments.map((payment, i) => (
-            <div key={i} className="flex-between">
-              <span>
-                {payment.percentage}% {payment.name}
-              </span>
-              <span style={{ fontWeight: 600 }}>
-                ${Math.round(finalPrice * payment.percentage / 100).toLocaleString('es-CO')}
-              </span>
-            </div>
-          ))}
+          {planPayments.length > 0 ? (
+            planPayments.map((payment, i) => (
+              <div key={i} className="flex-between">
+                <span>
+                  {payment.percentage}% {payment.name}
+                </span>
+                <span style={{ fontWeight: 600 }}>
+                  ${Math.round(finalPrice * payment.percentage / 100).toLocaleString('es-CO')}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="small" style={{ color: '#999' }}>No hay cuotas configuradas</p>
+          )}
         </div>
       </div>
     </>

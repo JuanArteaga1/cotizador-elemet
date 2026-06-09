@@ -6,7 +6,12 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { QuotePage } from '../features/quote/QuotePage';
 import { HistoryPage } from '../features/history/HistoryPage';
 import { InvoicePage } from '../features/invoice/InvoicePage';
-import { SettingsPage } from '../features/settings/SettingsPage';
+import { TarifasPage } from '../features/settings/TarifasPage';
+import { PagosPage } from '../features/settings/PagosPage';
+import { CuentaCobroPage } from '../features/settings/CuentaCobroPage';
+import { EstimacionPage } from '../features/settings/EstimacionPage';
+import { QuoteInvoicesPage } from '../features/invoice/QuoteInvoicesPage';
+import { EstimationCalculatorPage } from '../features/calculator/EstimationCalculatorPage';
 import { Layout } from './Layout';
 import { useStore } from '../shared/services/store';
 
@@ -45,7 +50,33 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute><Layout><InvoicePage /></Layout></ProtectedRoute>,
   },
   {
+    path: '/quotes/:quoteId/invoices',
+    element: <ProtectedRoute><Layout><QuoteInvoicesPage /></Layout></ProtectedRoute>,
+  },
+  // Config items now have their own routes
+  {
+    path: '/tarifas',
+    element: <ProtectedRoute><Layout><TarifasPage /></Layout></ProtectedRoute>,
+  },
+  {
+    path: '/pagos',
+    element: <ProtectedRoute><Layout><PagosPage /></Layout></ProtectedRoute>,
+  },
+  {
+    path: '/cuenta-cobro',
+    element: <ProtectedRoute><Layout><CuentaCobroPage /></Layout></ProtectedRoute>,
+  },
+  {
+    path: '/estimacion',
+    element: <ProtectedRoute><Layout><EstimacionPage /></Layout></ProtectedRoute>,
+  },
+  {
+    path: '/calculadoras/estimaciones',
+    element: <ProtectedRoute><Layout><EstimationCalculatorPage /></Layout></ProtectedRoute>,
+  },
+  // Redirect old /settings to /tarifas
+  {
     path: '/settings',
-    element: <ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>,
+    element: <Navigate to="/tarifas" replace />,
   },
 ]);

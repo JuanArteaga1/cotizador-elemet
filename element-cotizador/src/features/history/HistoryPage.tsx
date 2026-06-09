@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../shared/services/store';
 import { useAppStore } from '../../shared/hooks/useNotifications';
@@ -9,14 +9,22 @@ import type { Quote } from '../../shared/types';
 export function HistoryPage() {
   const navigate = useNavigate();
   const showNotification = useAppStore((s) => s.showNotification);
-  const { quotes, config, formData, deleteQuote, setFormData, setQuoteStep, setEditingQuoteId } = useStore();
+  const { quotes, config, formData, paymentPlans, loadPaymentPlans, deleteQuote, setFormData, setQuoteStep, setEditingQuoteId } = useStore();
+
+  // Load payment plans on mount (needed to resolve quote's selected plan in summary)
+  useEffect(() => {
+    if (paymentPlans.length === 0) {
+      loadPaymentPlans();
+    }
+  }, [paymentPlans.length, loadPaymentPlans]);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [quoteToDelete, setQuoteToDelete] = useState<number | null>(null);
+  const [quoteToDelete, setQuoteToDelete] = useState<number | string | null>(null);
   const [showEstimation, setShowEstimation] = useState(false);
   const [estimationQuote, setEstimationQuote] = useState<Quote | null>(null);
-  const [estimationType, setEstimationType] = useState<'obraNegra' | 'obraGris' | 'acabados'>('obraNegra');
+  const [estimationType, setEstimationType] = useState<string>('obraNegra');
   const [showSummary, setShowSummary] = useState(false);
+  const [expandedParents, setExpandedParents] = useState<Set<number | string>>(new Set());
 
   const statusColors: Record<string, string> = {
     draft: '#999999',
@@ -32,7 +40,7 @@ export function HistoryPage() {
     sent: 'Enviada',
   };
 
-  const handleDelete = (id: number, e: React.MouseEvent) => {
+  const handleDelete = (id: number | string, e: React.MouseEvent) => {
     e.stopPropagation();
     setQuoteToDelete(id);
     setShowDeleteConfirm(true);
@@ -47,10 +55,25 @@ export function HistoryPage() {
     }
   };
 
-  const handleEdit = (quote: Quote) => {
+  const handleEdit = async (quote: Quote) => {
     if (quote.status === 'paid' || quote.status === 'completed') {
       showNotification('No puedes editar una cotización finalizada', 'warning');
       return;
+    }
+    // Check if quote has payments
+    try {
+      const { apiService, extractData } = await import('../../shared/services/api');
+      const res = await apiService.getQuotePayments(quote.id);
+      const payments = extractData(res);
+      if (Array.isArray(payments) && payments.length > 0) {
+        const hasConfirmed = payments.some((p: any) => p.status === 'confirmed' || p.status === 'approved');
+        if (hasConfirmed) {
+          showNotification('No puedes editar una cotización con pagos registrados', 'warning');
+          return;
+        }
+      }
+    } catch {
+      // Silently continue
     }
     const data = safeParseQuoteData(quote.data);
     if (!data) {
@@ -61,6 +84,38 @@ export function HistoryPage() {
     setQuoteStep(5);
     setEditingQuoteId(quote.id);
     navigate('/quote');
+  };
+
+  const handleCloneQuote = (quote: Quote) => {
+    const data = safeParseQuoteData(quote.data);
+    if (!data) {
+      showNotification('Error al leer los datos de la cotización', 'error');
+      return;
+    }
+    // Precargar datos base, pero resetear plan de pagos, cuentas de cobro y contador
+    setFormData({
+      ...data,
+      parentQuoteId: quote.id,
+      paymentPlanId: undefined,
+      invoices: [],
+      invoiceCount: 0,
+    });
+    setQuoteStep(4);
+    setEditingQuoteId(null); // Es nueva, no edición
+    setSelectedQuote(null);
+    navigate('/quote');
+  };
+
+  const toggleParent = (id: number | string) => {
+    setExpandedParents((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const handleView = (quote: Quote) => {
@@ -74,16 +129,6 @@ export function HistoryPage() {
     setShowSummary(true);   // Open summary modal
   };
 
-  const handleInvoice = (quote: Quote) => {
-    const data = safeParseQuoteData(quote.data);
-    if (!data) {
-      showNotification('Error al leer los datos de la cotización', 'error');
-      return;
-    }
-    setFormData(data);
-    navigate(`/invoice/${quote.id}`);
-  };
-
   return (
     <main>
       <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Historial</h1>
@@ -91,36 +136,117 @@ export function HistoryPage() {
 
       {quotes.length > 0 ? (
         <div className="mt-2">
-          {quotes.map((quote) => {
-            const status = quote.status === 'paid' || quote.status === 'completed' ? 'completed' : 'draft';
-            return (
-              <div
-                key={quote.id}
-                className="history-item"
-                onClick={() => setSelectedQuote(quote)}
-              >
-                <div className="flex-between mb-1">
-                  <h3 style={{ fontSize: 18, fontWeight: 600 }}>{quote.client}</h3>
-                  <button
-                    className="btn-small btn-danger"
-                    onClick={(e) => handleDelete(quote.id, e)}
+          {(() => {
+            // Group quotes into parents and children
+            const parentQuotes: Quote[] = [];
+            const childQuotes: Quote[] = [];
+            quotes.forEach((q) => {
+              const d = safeParseQuoteData(q.data);
+              if (d?.parentQuoteId) {
+                childQuotes.push(q);
+              } else {
+                parentQuotes.push(q);
+              }
+            });
+
+            return parentQuotes.map((parent) => {
+              const status = parent.status === 'paid' || parent.status === 'completed' ? 'completed' : 'draft';
+              const children = childQuotes.filter((c) => {
+                const d = safeParseQuoteData(c.data);
+                return String(d?.parentQuoteId) === String(parent.id);
+              });
+              const hasChildren = children.length > 0;
+              const isExpanded = expandedParents.has(parent.id);
+
+              return (
+                <div key={parent.id}>
+                  {/* Parent quote */}
+                  <div
+                    className="history-item"
+                    onClick={() => setSelectedQuote(parent)}
+                    style={{ position: 'relative' }}
                   >
-                    ×
-                  </button>
+                    {hasChildren && (
+                      <button
+                        className="btn-small btn-secondary"
+                        onClick={(e) => { e.stopPropagation(); toggleParent(parent.id); }}
+                        style={{
+                          position: 'absolute',
+                          right: 40,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          padding: '4px 8px',
+                          fontSize: 12,
+                        }}
+                      >
+                        {isExpanded ? '▲' : '▼'} {children.length}
+                      </button>
+                    )}
+                    <div className="flex-between mb-1">
+                      <h3 style={{ fontSize: 18, fontWeight: 600 }}>{parent.client}</h3>
+                      <button
+                        className="btn-small btn-danger"
+                        onClick={(e) => handleDelete(parent.id, e)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <p className="small">{parent.project}</p>
+                    <div className="flex-between" style={{ marginTop: 8 }}>
+                      <span className="small" style={{ color: statusColors[status], fontWeight: 600 }}>
+                        ● {statusLabels[status]}
+                      </span>
+                      <span className="small">
+                        {parent.area.toFixed(0)}m² - ${parent.price.toLocaleString('es-CO')}
+                      </span>
+                    </div>
+                    <p className="small mt-1">{parent.date}</p>
+                  </div>
+
+                  {/* Children quotes */}
+                  {isExpanded && hasChildren && (
+                    <div style={{ marginLeft: 20, marginTop: 4, marginBottom: 4 }}>
+                      {children.map((child) => {
+                        const childStatus = child.status === 'paid' || child.status === 'completed' ? 'completed' : 'draft';
+                        return (
+                          <div
+                            key={child.id}
+                            className="history-item"
+                            onClick={() => setSelectedQuote(child)}
+                            style={{
+                              borderLeft: '3px solid #b69462',
+                              marginBottom: 8,
+                              paddingLeft: 16,
+                            }}
+                          >
+                            <div className="flex-between mb-1">
+                              <h3 style={{ fontSize: 16, fontWeight: 600 }}>{child.client}</h3>
+                              <button
+                                className="btn-small btn-danger"
+                                onClick={(e) => handleDelete(child.id, e)}
+                              >
+                                ×
+                              </button>
+                            </div>
+                            <p className="small">{child.project}</p>
+                            <div className="flex-between" style={{ marginTop: 8 }}>
+                              <span className="small" style={{ color: statusColors[childStatus], fontWeight: 600 }}>
+                                ● {statusLabels[childStatus]}
+                              </span>
+                              <span className="small">
+                                {child.area.toFixed(0)}m² - ${child.price.toLocaleString('es-CO')}
+                              </span>
+                            </div>
+                            <p className="small mt-1">{child.date}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <p className="small">{quote.project}</p>
-                <div className="flex-between" style={{ marginTop: 8 }}>
-                  <span className="small" style={{ color: statusColors[status], fontWeight: 600 }}>
-                    ● {statusLabels[status]}
-                  </span>
-                  <span className="small">
-                    {quote.area.toFixed(0)}m² - ${quote.price.toLocaleString('es-CO')}
-                  </span>
-                </div>
-                <p className="small mt-1">{quote.date}</p>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       ) : (
         <div className="card mt-2" style={{ textAlign: 'center', padding: 40 }}>
@@ -149,8 +275,17 @@ export function HistoryPage() {
                   ✏️ Editar
                 </button>
               )}
-              <button className="btn btn-secondary" onClick={() => handleInvoice(selectedQuote)}>
-                📋 Generar Cuenta de Cobro
+              <button className="btn btn-secondary" onClick={() => handleCloneQuote(selectedQuote)}>
+                🔄 Nueva cotización
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setSelectedQuote(null);
+                  navigate(`/quotes/${selectedQuote.id}/invoices`);
+                }}
+              >
+                💳 Cuentas de Cobro
               </button>
               <button
                 className="btn btn-secondary"
@@ -287,19 +422,26 @@ export function HistoryPage() {
               </div>
 
               {/* Payment Plan — Horizontal */}
-              {config.paymentPlan.payments.length > 0 && (
-                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: `repeat(${Math.min(config.paymentPlan.payments.length, 4)}, 1fr)`, gap: 8 }}>
-                  {config.paymentPlan.payments.map((payment, i) => (
-                    <div key={i} className="card" style={{ padding: 12, textAlign: 'center' }}>
-                      <p className="small" style={{ color: '#999', fontSize: 10, marginBottom: 2 }}>{payment.name}</p>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#b69462' }}>
-                        ${Math.round(calculatePrice(formData, config) * payment.percentage / 100).toLocaleString('es-CO')}
+              {(() => {
+                const selectedPlan = formData.paymentPlanId !== undefined
+                  ? paymentPlans.find((p) => String(p.id) === String(formData.paymentPlanId))
+                  : undefined;
+                const planPayments = selectedPlan ? selectedPlan.installments : config.paymentPlan.payments;
+                if (planPayments.length === 0) return null;
+                return (
+                  <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: `repeat(${Math.min(planPayments.length, 4)}, 1fr)`, gap: 8 }}>
+                    {planPayments.map((payment: any, i: number) => (
+                      <div key={i} className="card" style={{ padding: 12, textAlign: 'center' }}>
+                        <p className="small" style={{ color: '#999', fontSize: 10, marginBottom: 2 }}>{payment.name}</p>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#b69462' }}>
+                          ${Math.round(calculatePrice(formData, config) * payment.percentage / 100).toLocaleString('es-CO')}
+                        </div>
+                        <div className="small" style={{ fontSize: 10, color: '#666' }}>{payment.percentage}%</div>
                       </div>
-                      <div className="small" style={{ fontSize: 10, color: '#666' }}>{payment.percentage}%</div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             <button className="btn" onClick={() => setShowSummary(false)}>
@@ -331,9 +473,9 @@ export function HistoryPage() {
               <p className="small">m²</p>
             </div>
 
-            {/* Toggle obra negra / obra gris / acabados */}
+            {/* Fixed estimations */}
             <p className="small mb-1">Tipo de acabado</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
               <div
                 className={`toggle-option ${estimationType === 'obraNegra' ? 'active' : ''}`}
                 onClick={() => setEstimationType('obraNegra')}
@@ -360,16 +502,45 @@ export function HistoryPage() {
               </div>
             </div>
 
+            {/* Custom estimations */}
+            {(() => {
+              const customList = config.estimation.customEstimations ?? [];
+              if (customList.length === 0) return null;
+              return (
+                <>
+                  <p className="small mb-1" style={{ marginTop: 8 }}>Mis estimaciones</p>
+                  <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+                    {customList.map((est) => (
+                      <div
+                        key={est.id}
+                        className={`toggle-option ${estimationType === String(est.id) ? 'active' : ''}`}
+                        onClick={() => setEstimationType(String(est.id))}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px' }}
+                      >
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>{est.name}</div>
+                        <div className="small" style={{ color: '#b69462' }}>${est.price.toLocaleString('es-CO')}/m²</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+
             {/* Price per m² */}
             <div className="flex-between mb-2" style={{ padding: '12px 0', borderBottom: '1px solid var(--color-line)' }}>
               <span className="small">Precio por m²</span>
               <span style={{ fontWeight: 600 }}>
-                ${(estimationType === 'obraNegra'
-                  ? config.estimation.obraNegraPrice
-                  : estimationType === 'obraGris'
-                    ? config.estimation.obraGrisPrice
-                    : config.estimation.acabadosPrice
-                ).toLocaleString('es-CO')} COP
+                ${(() => {
+                  let price = 0;
+                  if (estimationType === 'obraNegra') price = config.estimation.obraNegraPrice;
+                  else if (estimationType === 'obraGris') price = config.estimation.obraGrisPrice;
+                  else if (estimationType === 'acabados') price = config.estimation.acabadosPrice;
+                  else {
+                    const custom = config.estimation.customEstimations?.find((e) => String(e.id) === estimationType);
+                    if (custom) price = custom.price;
+                  }
+                  return price.toLocaleString('es-CO');
+                })()} COP
               </span>
             </div>
 
@@ -377,12 +548,17 @@ export function HistoryPage() {
             <div className="flex-between" style={{ padding: '16px 0', marginBottom: 24 }}>
               <span style={{ fontSize: 16, fontWeight: 600 }}>Costo estimado total</span>
               <span style={{ fontSize: 24, fontWeight: 700, color: '#b69462' }}>
-                ${(estimationQuote.area * (estimationType === 'obraNegra'
-                  ? config.estimation.obraNegraPrice
-                  : estimationType === 'obraGris'
-                    ? config.estimation.obraGrisPrice
-                    : config.estimation.acabadosPrice
-                )).toLocaleString('es-CO')} COP
+                ${(() => {
+                  let price = 0;
+                  if (estimationType === 'obraNegra') price = config.estimation.obraNegraPrice;
+                  else if (estimationType === 'obraGris') price = config.estimation.obraGrisPrice;
+                  else if (estimationType === 'acabados') price = config.estimation.acabadosPrice;
+                  else {
+                    const custom = config.estimation.customEstimations?.find((e) => String(e.id) === estimationType);
+                    if (custom) price = custom.price;
+                  }
+                  return (estimationQuote.area * price).toLocaleString('es-CO');
+                })()} COP
               </span>
             </div>
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AppConfig, Quote, QuoteFormData, User } from '../types';
+import type { AppConfig, Quote, QuoteFormData, User, SavedPaymentPlan } from '../types';
 
 export interface AppState {
   // Auth
@@ -20,10 +20,18 @@ export interface AppState {
   // Quotes
   quotes: Quote[];
   addQuote: (quote: Quote) => void;
-  updateQuote: (id: number, updates: Partial<Quote>) => void;
-  deleteQuote: (id: number) => void;
+  updateQuote: (id: number | string, updates: Partial<Quote>) => void;
+  deleteQuote: (id: number | string) => void;
   clearAllQuotes: () => void;
-  getQuoteById: (id: number) => Quote | undefined;
+  getQuoteById: (id: number | string) => Quote | undefined;
+
+  // Payment Plans
+  paymentPlans: SavedPaymentPlan[];
+  loadPaymentPlans: () => Promise<void>;
+  createPaymentPlan: (plan: Omit<SavedPaymentPlan, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updatePaymentPlan: (id: number | string, plan: Partial<SavedPaymentPlan>) => Promise<void>;
+  deletePaymentPlan: (id: number | string) => Promise<void>;
+  setDefaultPaymentPlan: (id: number | string) => Promise<void>;
 
   // Form
   formData: QuoteFormData;
@@ -35,8 +43,8 @@ export interface AppState {
   setQuoteStep: (step: number) => void;
 
   // Edit mode
-  editingQuoteId: number | null;
-  setEditingQuoteId: (id: number | null) => void;
+  editingQuoteId: number | string | null;
+  setEditingQuoteId: (id: number | string | null) => void;
 }
 
 const defaultFormData: QuoteFormData = {
@@ -58,6 +66,8 @@ const defaultFormData: QuoteFormData = {
   hasCompletePackage: false,
   discount: 0,
   additionalServices: [],
+  paymentPlanId: undefined,
+  invoices: [],
 };
 
 const demoConfig: AppConfig = {
@@ -74,7 +84,7 @@ const demoConfig: AppConfig = {
   subPackages: {
     installations: { name: 'Instalaciones (Eléctrico + Hidrosanitario)', price: 4500, unit: '/m²' },
   },
-  completePackage: { name: 'Paquete Completo Premium', price: 14000, unit: '/m²' },
+  completePackage: { name: 'Paquete Técnico Completo', price: 14000, unit: '/m²' },
   paymentPlan: {
     payments: [
       { name: 'Firma', percentage: 50 },
@@ -118,6 +128,7 @@ const demoConfig: AppConfig = {
     obraNegraPrice: 1500000,
     obraGrisPrice: 2800000,
     acabadosPrice: 4200000,
+    customEstimations: [],
   },
 };
 
@@ -129,6 +140,8 @@ const getStoredUser = (): User | null => {
     return null;
   }
 };
+
+let isLoadingFromBackend = false;
 
 export const useStore = create<AppState>((set, get) => ({
   user: getStoredUser(),
@@ -142,31 +155,40 @@ export const useStore = create<AppState>((set, get) => ({
     set({ user: null, isAuthenticated: false, quotes: [], config: demoConfig });
   },
   loadFromBackend: async () => {
+    if (isLoadingFromBackend) {
+      console.log('[STORE] loadFromBackend already in progress, skipping duplicate');
+      return;
+    }
+    isLoadingFromBackend = true;
     try {
       const { apiService, extractData } = await import('./api');
-      console.log('[STORE] Loading quotes and config from SaaS...');
-      const [quotesRes, configRes] = await Promise.all([
+      console.log('[STORE] Loading data from backend...');
+      const [quotesRes, configRes, plansRes] = await Promise.all([
         apiService.getQuotes(),
-        apiService.getMyConfig(),
+        apiService.getMyConfig().catch(() => null),
+        apiService.getPaymentPlans().catch(() => null),
       ]);
       const quotes = extractData(quotesRes);
       const rawConfig = extractData(configRes);
+      const plans = extractData(plansRes);
       console.log('[STORE] Quotes response:', quotes);
       console.log('[STORE] Config raw response:', rawConfig);
+      console.log('[STORE] Payment plans response:', plans);
 
       if (Array.isArray(quotes)) {
         set({ quotes });
       }
 
+      if (Array.isArray(plans)) {
+        set({ paymentPlans: plans });
+      }
+
       if (rawConfig && typeof rawConfig === 'object') {
-        // Convert backend snake_case → frontend camelCase
         const { fromSaaSConfig } = await import('./api');
         const normalizedConfig = fromSaaSConfig(rawConfig);
 
-        // Merge with demoConfig — use deep merge for nested objects
         const mergedConfig: any = { ...demoConfig, ...normalizedConfig };
 
-        // If backend sent empty nested objects, restore defaults from demoConfig
         if (!mergedConfig.paymentPlan?.payments?.length) {
           mergedConfig.paymentPlan = demoConfig.paymentPlan;
         }
@@ -187,24 +209,11 @@ export const useStore = create<AppState>((set, get) => ({
         }
 
         set({ config: mergedConfig });
-
-        // Extract customer name from config response if present
-        const customerName =
-          rawConfig.customer?.name ||
-          rawConfig.customer_name ||
-          rawConfig.name;
-        if (customerName) {
-          const currentUser = get().user;
-          if (currentUser && (!currentUser.name || currentUser.name === 'Usuario')) {
-            const updatedUser = { ...currentUser, name: customerName };
-            localStorage.setItem('element_user', JSON.stringify(updatedUser));
-            set({ user: updatedUser });
-            console.log('[STORE] Updated user name from config:', customerName);
-          }
-        }
       }
     } catch (e: any) {
-      console.error('[STORE] Error loading from SaaS:', e.message || e);
+      console.error('[STORE] Error loading from backend:', e.message || e);
+    } finally {
+      isLoadingFromBackend = false;
     }
   },
 
@@ -282,24 +291,104 @@ export const useStore = create<AppState>((set, get) => ({
     } catch {}
   },
 
+  paymentPlans: [],
+  loadPaymentPlans: async () => {
+    try {
+      const { apiService, extractData } = await import('./api');
+      const res = await apiService.getPaymentPlans();
+      const plans = extractData(res);
+      if (Array.isArray(plans)) {
+        set({ paymentPlans: plans });
+      }
+    } catch (e: any) {
+      console.error('[STORE] Error loading payment plans:', e.message || e);
+    }
+  },
+  createPaymentPlan: async (plan) => {
+    try {
+      const { apiService, extractData } = await import('./api');
+      const res = await apiService.createPaymentPlan(plan);
+      const created = extractData(res);
+      if (created) {
+        set((state) => ({ paymentPlans: [created, ...state.paymentPlans] }));
+      }
+    } catch (e: any) {
+      console.error('[STORE] Error creating payment plan:', e.message || e);
+      throw e;
+    }
+  },
+  updatePaymentPlan: async (id, plan) => {
+    try {
+      const { apiService, extractData } = await import('./api');
+      const res = await apiService.updatePaymentPlan(id, plan);
+      const updated = extractData(res);
+      if (updated) {
+        set((state) => ({
+          paymentPlans: state.paymentPlans.map((p) => (p.id === id ? updated : p)),
+        }));
+      }
+    } catch (e: any) {
+      console.error('[STORE] Error updating payment plan:', e.message || e);
+      throw e;
+    }
+  },
+  deletePaymentPlan: async (id) => {
+    try {
+      const { apiService } = await import('./api');
+      await apiService.deletePaymentPlan(id);
+      set((state) => ({ paymentPlans: state.paymentPlans.filter((p) => p.id !== id) }));
+    } catch (e: any) {
+      console.error('[STORE] Error deleting payment plan:', e.message || e);
+      throw e;
+    }
+  },
+  setDefaultPaymentPlan: async (id) => {
+    try {
+      const { apiService, extractData } = await import('./api');
+      const res = await apiService.setDefaultPaymentPlan(id);
+      const updated = extractData(res);
+      if (updated) {
+        set((state) => ({
+          paymentPlans: state.paymentPlans.map((p) => ({
+            ...p,
+            isDefault: p.id === id,
+          })),
+        }));
+      }
+    } catch (e: any) {
+      console.error('[STORE] Error setting default payment plan:', e.message || e);
+      throw e;
+    }
+  },
+
   quotes: [],
   addQuote: (quote) => {
     set((state) => ({ quotes: [quote, ...state.quotes] }));
     // Sync to SaaS — strip temp id, data is already an object
     try {
-      import('./api').then(({ apiService, extractData }) => {
+      import('./api').then(async ({ apiService, extractData }) => {
         const { id: _tempId, ...serverPayload } = quote;
-        apiService.createQuote(serverPayload)
-          .then((res) => {
-            const created = extractData(res);
-            if (created && created.id) {
-              // Replace the temp ID with the real server ID
-              set((state) => ({
-                quotes: state.quotes.map((q) => (q.id === quote.id ? { ...created, data: typeof created.data === 'string' ? created.data : JSON.stringify(created.data) } : q)),
-              }));
+        try {
+          const res = await apiService.createQuote(serverPayload);
+          const created = extractData(res);
+          if (created && created.id) {
+            // Replace the temp ID with the real server ID
+            set((state) => ({
+              quotes: state.quotes.map((q) => (q.id === quote.id ? { ...created, data: typeof created.data === 'string' ? created.data : JSON.stringify(created.data) } : q)),
+            }));
+
+            // Assign payment plan if one was selected
+            const paymentPlanId =
+              typeof serverPayload.data === 'object' && serverPayload.data !== null
+                ? (serverPayload.data as any).paymentPlanId
+                : undefined;
+            if (paymentPlanId) {
+              await apiService.selectPaymentPlan(created.id, { payment_plan_id: paymentPlanId });
             }
-          })
-          .catch(() => {});
+          }
+        } catch {
+          // Silently fail
+        }
       });
     } catch {}
   },
@@ -308,8 +397,21 @@ export const useStore = create<AppState>((set, get) => ({
       quotes: state.quotes.map((q) => (q.id === id ? { ...q, ...updates } : q)),
     }));
     try {
-      import('./api').then(({ apiService }) => {
-        apiService.updateQuote(id, updates).catch(() => {});
+      import('./api').then(async ({ apiService }) => {
+        try {
+          await apiService.updateQuote(id, updates);
+
+          // Assign payment plan if one was selected
+          const paymentPlanId =
+            typeof updates.data === 'object' && updates.data !== null
+              ? (updates.data as any).paymentPlanId
+              : (updates as any).paymentPlanId;
+          if (paymentPlanId) {
+            await apiService.selectPaymentPlan(id, { payment_plan_id: paymentPlanId });
+          }
+        } catch {
+          // Silently fail
+        }
       });
     } catch {}
   },
